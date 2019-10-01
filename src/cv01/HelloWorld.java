@@ -9,6 +9,7 @@ import org.lwjgl.glfw.GLFWFramebufferSizeCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.system.MemoryStack;
+import transforms.*;
 
 import java.nio.IntBuffer;
 
@@ -41,9 +42,10 @@ public class HelloWorld {
 
 	OGLBuffers buffers;
 
-	int shaderProgram, locTime;
+	int shaderProgram, locTime, locMVP;
 
 	float time = 0;
+	Mat4 MVP = new Mat4Identity();
 
 	private void init() {
 		// Setup an error callback. The default implementation
@@ -124,7 +126,7 @@ public class HelloWorld {
 
 		createBuffers();
 
-		shaderProgram = ShaderUtils.loadProgram("/lvl1basic/p01start/uniform.vert",
+		shaderProgram = ShaderUtils.loadProgram("/lvl1basic/p01start/cv2.vert",
 				"/lvl1basic/p01start/uniform.frag",
 				null,null,null,null);
 
@@ -133,31 +135,23 @@ public class HelloWorld {
 
 		// internal OpenGL ID of a shader uniform (constant during one draw call
 		// - constant value for all processed vertices or pixels) variable
-		locTime = glGetUniformLocation(shaderProgram, "time");
+		//locTime = glGetUniformLocation(shaderProgram, "time");
+		locMVP = glGetUniformLocation(shaderProgram, "MVP");
 
 	}
 
 	void createBuffers() {
-		float[] vertexBufferData = {
-			-1, -1, 	0.7f, 0, 0,
-			 1,  0,		0, 0.7f, 0,
-			 0,  1,		0, 0, 0.7f
-		};
-
-		GridFactory factory = new GridFactory(2,2);
-		float[] vertexBufferData2 = factory.getVertexBuffer();
-        int[] indexBufferData2 = factory.getIndexBuffer();
-
-		int[] indexBufferData = { 0, 1, 2 };
-
+		GridFactory factory = new GridFactory(10,10);
+		float[] vertexBufferData = factory.getVertexBuffer();
+        int[] indexBufferData = factory.getIndexBuffer();
 
 		// vertex binding description, concise version
 		OGLBuffers.Attrib[] attributes = {
 				new OGLBuffers.Attrib("inPosition", 2), // 2 floats
-				//new OGLBuffers.Attrib("inColor", 3) // 3 floats
 		};
-		buffers = new OGLBuffers(vertexBufferData2, attributes,
-				indexBufferData2);
+
+		buffers = new OGLBuffers(vertexBufferData, attributes,
+				indexBufferData);
 		// the concise version requires attributes to be in this order within
 		// vertex and to be exactly all floats within vertex
 
@@ -185,8 +179,10 @@ public class HelloWorld {
 			glUseProgram(shaderProgram);
 			// to use the default shader of the "fixed pipeline", call
 			//glUseProgram(0);
-			time += 0.1;
-			glUniform1f(locTime, time); // correct shader must be set before this
+			time += 0.01;
+			//glUniform1f(locTime, time); // correct shader must be set before this
+
+			glUniformMatrix4fv(locMVP, false, MVP.mul(new Mat4RotX(time)).floatArray());
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			// bind and draw
 			buffers.draw(GL_TRIANGLES, shaderProgram);
