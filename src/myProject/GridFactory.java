@@ -1,6 +1,4 @@
-package cv01;
-
-import lwjglutils.OGLBuffers;
+package myProject;
 
 public class GridFactory {
     float[] vertexBuffer;

@@ -1,16 +1,16 @@
-package cv01;
+package myProject;
 
 import lwjglutils.OGLBuffers;
 import lwjglutils.OGLUtils;
 import lwjglutils.ShaderUtils;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.Version;
-import org.lwjgl.glfw.GLFWErrorCallback;
-import org.lwjgl.glfw.GLFWFramebufferSizeCallback;
-import org.lwjgl.glfw.GLFWVidMode;
+import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.system.MemoryStack;
 import transforms.*;
 
+import java.nio.DoubleBuffer;
 import java.nio.IntBuffer;
 
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
@@ -37,15 +37,21 @@ public class HelloWorld {
 
 	int width, height;
 
+	double ox, oy;
+	private boolean mouseButton = false;
+
 	// The window handle
 	private long window;
 
 	OGLBuffers buffers;
 
-	int shaderProgram, locTime, locMVP;
+	int shaderProgram, locProjection, locView, locRotateX;
 
 	float time = 0;
-	Mat4 MVP = new Mat4Identity();
+
+	Mat4RotX rotateX = new Mat4RotX(time);
+	Camera view = new Camera();
+	Mat4 projection = new Mat4PerspRH(Math.PI / 4, 1, 0.01, 10000.0);
 
 	private void init() {
 		// Setup an error callback. The default implementation
@@ -70,6 +76,71 @@ public class HelloWorld {
 		glfwSetKeyCallback(window, (window, key, scancode, action, mods) -> {
 			if ( key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE )
 				glfwSetWindowShouldClose(window, true); // We will detect this in the rendering loop
+			if (action == GLFW_PRESS || action == GLFW_REPEAT){
+				switch (key){
+					case GLFW_KEY_W:
+						view = view.forward(1);
+						break;
+					case GLFW_KEY_S:
+						view = view.backward(1);
+						break;
+					case GLFW_KEY_A:
+						view = view.left(1);
+						break;
+					case GLFW_KEY_D:
+						view = view.right(1);
+						break;
+					case GLFW_KEY_F:
+						view = view.down(1);
+						break;
+					case GLFW_KEY_R:
+						view = view.up(1);
+						break;
+				}
+			}
+		});
+
+		glfwSetCursorPosCallback(window, new GLFWCursorPosCallback() {
+			@Override
+			public void invoke(long window, double x, double y) {
+				if (mouseButton) {
+					view = view.addAzimuth((double) Math.PI * (ox - x) / width)
+							.addZenith((double) Math.PI * (oy - y) / width);
+					ox = x;
+					oy = y;
+				}
+			}
+		});
+
+		glfwSetMouseButtonCallback(window, new GLFWMouseButtonCallback() {
+
+			@Override
+			public void invoke(long window, int button, int action, int mods) {
+				mouseButton = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS;
+
+				if (button==GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS){
+					mouseButton = true;
+					DoubleBuffer xBuffer = BufferUtils.createDoubleBuffer(1);
+					DoubleBuffer yBuffer = BufferUtils.createDoubleBuffer(1);
+					glfwGetCursorPos(window, xBuffer, yBuffer);
+					ox = xBuffer.get(0);
+					oy = yBuffer.get(0);
+				}
+
+				if (button==GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE){
+					mouseButton = false;
+					DoubleBuffer xBuffer = BufferUtils.createDoubleBuffer(1);
+					DoubleBuffer yBuffer = BufferUtils.createDoubleBuffer(1);
+					glfwGetCursorPos(window, xBuffer, yBuffer);
+					double x = xBuffer.get(0);
+					double y = yBuffer.get(0);
+					view = view.addAzimuth((double) Math.PI * (ox - x) / width)
+							.addZenith((double) Math.PI * (oy - y) / width);
+					ox = x;
+					oy = y;
+				}
+			}
+
 		});
 
 		glfwSetFramebufferSizeCallback(window, new GLFWFramebufferSizeCallback() {
@@ -126,7 +197,7 @@ public class HelloWorld {
 
 		createBuffers();
 
-		shaderProgram = ShaderUtils.loadProgram("/lvl1basic/p01start/cv2.vert",
+		shaderProgram = ShaderUtils.loadProgram("/myProject/myShader.vert",
 				"/lvl1basic/p01start/uniform.frag",
 				null,null,null,null);
 
@@ -136,8 +207,13 @@ public class HelloWorld {
 		// internal OpenGL ID of a shader uniform (constant during one draw call
 		// - constant value for all processed vertices or pixels) variable
 		//locTime = glGetUniformLocation(shaderProgram, "time");
-		locMVP = glGetUniformLocation(shaderProgram, "MVP");
+		locProjection = glGetUniformLocation(shaderProgram, "projection");
+		locView = glGetUniformLocation(shaderProgram, "view");
+		locRotateX = glGetUniformLocation(shaderProgram, "rotateX");
 
+		view = view.withPosition(new Vec3D(5, 5, 2.5))
+				.withAzimuth(Math.PI * 1.25)
+				.withZenith(Math.PI * -0.125);
 	}
 
 	void createBuffers() {
@@ -174,16 +250,17 @@ public class HelloWorld {
 
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
 
-			// set the current shader to be used, could have been done only once (in
 			// init) in this sample (only one shader used)
 			glUseProgram(shaderProgram);
 			// to use the default shader of the "fixed pipeline", call
 			//glUseProgram(0);
 			time += 0.01;
-			//glUniform1f(locTime, time); // correct shader must be set before this
+			rotateX = new Mat4RotX(time);
+			glUniformMatrix4fv(locProjection, false, projection.floatArray());
+			glUniformMatrix4fv(locView, false, view.getViewMatrix().floatArray());
+			glUniformMatrix4fv(locRotateX, false, rotateX.floatArray());
 
-			glUniformMatrix4fv(locMVP, false, MVP.mul(new Mat4RotX(time)).floatArray());
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			// bind and draw
 			buffers.draw(GL_TRIANGLES, shaderProgram);
 
