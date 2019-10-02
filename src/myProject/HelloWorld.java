@@ -37,19 +37,23 @@ public class HelloWorld {
 
 	int width, height;
 
+	// Axis and mouseButton switch
 	double ox, oy;
-	private boolean mouseButton = false;
+	private boolean isButtonPressed = false;
 
 	// The window handle
 	private long window;
 
 	OGLBuffers buffers;
 
+	// All shits for shaders
 	int shaderProgram, locProjection, locView, locRotateX;
 
-	float time = 0;
+	// Rotation counter
+	float rotate = 0;
 
-	Mat4RotX rotateX = new Mat4RotX(time);
+	// Model, View and Projection matrix (KIKM-PGRF3/prednasky/PG3_01.pdf slide: 12)
+	Mat4RotX rotateX = new Mat4RotX(rotate);
 	Camera view = new Camera();
 	Mat4 projection = new Mat4PerspRH(Math.PI / 4, 1, 0.01, 10000.0);
 
@@ -74,8 +78,12 @@ public class HelloWorld {
 
 		// Setup a key callback. It will be called every time a key is pressed, repeated or released.
 		glfwSetKeyCallback(window, (window, key, scancode, action, mods) -> {
+
+			// Close window by ESCAPE
 			if ( key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE )
 				glfwSetWindowShouldClose(window, true); // We will detect this in the rendering loop
+
+			// Move with camera by KEYS
 			if (action == GLFW_PRESS || action == GLFW_REPEAT){
 				switch (key){
 					case GLFW_KEY_W:
@@ -100,10 +108,11 @@ public class HelloWorld {
 			}
 		});
 
+		//If mouse button is still pressed and dragging, edit camera
 		glfwSetCursorPosCallback(window, new GLFWCursorPosCallback() {
 			@Override
 			public void invoke(long window, double x, double y) {
-				if (mouseButton) {
+				if (isButtonPressed) {
 					view = view.addAzimuth((double) Math.PI * (ox - x) / width)
 							.addZenith((double) Math.PI * (oy - y) / width);
 					ox = x;
@@ -112,14 +121,15 @@ public class HelloWorld {
 			}
 		});
 
+		//If mouse button is pressed or released, take cursor position, store it to axis and edit camera
 		glfwSetMouseButtonCallback(window, new GLFWMouseButtonCallback() {
 
 			@Override
 			public void invoke(long window, int button, int action, int mods) {
-				mouseButton = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS;
+				isButtonPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS;
 
 				if (button==GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS){
-					mouseButton = true;
+					isButtonPressed = true;
 					DoubleBuffer xBuffer = BufferUtils.createDoubleBuffer(1);
 					DoubleBuffer yBuffer = BufferUtils.createDoubleBuffer(1);
 					glfwGetCursorPos(window, xBuffer, yBuffer);
@@ -128,7 +138,7 @@ public class HelloWorld {
 				}
 
 				if (button==GLFW_MOUSE_BUTTON_1 && action == GLFW_RELEASE){
-					mouseButton = false;
+					isButtonPressed = false;
 					DoubleBuffer xBuffer = BufferUtils.createDoubleBuffer(1);
 					DoubleBuffer yBuffer = BufferUtils.createDoubleBuffer(1);
 					glfwGetCursorPos(window, xBuffer, yBuffer);
@@ -206,7 +216,6 @@ public class HelloWorld {
 
 		// internal OpenGL ID of a shader uniform (constant during one draw call
 		// - constant value for all processed vertices or pixels) variable
-		//locTime = glGetUniformLocation(shaderProgram, "time");
 		locProjection = glGetUniformLocation(shaderProgram, "projection");
 		locView = glGetUniformLocation(shaderProgram, "view");
 		locRotateX = glGetUniformLocation(shaderProgram, "rotateX");
@@ -254,8 +263,8 @@ public class HelloWorld {
 			glUseProgram(shaderProgram);
 			// to use the default shader of the "fixed pipeline", call
 			//glUseProgram(0);
-			time += 0.01;
-			rotateX = new Mat4RotX(time);
+			rotate += 0.01;
+			rotateX = new Mat4RotX(rotate);
 			glUniformMatrix4fv(locProjection, false, projection.floatArray());
 			glUniformMatrix4fv(locView, false, view.getViewMatrix().floatArray());
 			glUniformMatrix4fv(locRotateX, false, rotateX.floatArray());
