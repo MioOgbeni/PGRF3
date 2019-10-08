@@ -1,4 +1,4 @@
-package myProject;
+package myProject.old;
 
 import lwjglutils.OGLBuffers;
 import lwjglutils.OGLUtils;
@@ -226,17 +226,17 @@ public class HelloWorld {
 	}
 
 	void createBuffers() {
-		GridFactory factory = new GridFactory(10,10);
-		float[] vertexBufferData = factory.getVertexBuffer();
-        int[] indexBufferData = factory.getIndexBuffer();
+		//GridFactory factory = new GridFactory(10,10);
+		//float[] vertexBufferData = factory.getVertexBuffer();
+        //int[] indexBufferData = factory.getIndexBuffer();
 
 		// vertex binding description, concise version
 		OGLBuffers.Attrib[] attributes = {
 				new OGLBuffers.Attrib("inPosition", 2), // 2 floats
 		};
 
-		buffers = new OGLBuffers(vertexBufferData, attributes,
-				indexBufferData);
+		//buffers = new OGLBuffers(vertexBufferData, attributes,
+		//		indexBufferData);
 		// the concise version requires attributes to be in this order within
 		// vertex and to be exactly all floats within vertex
 
