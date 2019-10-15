@@ -3,9 +3,7 @@ package myProject;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL20.glGetUniformLocation;
-import static org.lwjgl.opengl.GL20.glUniformMatrix4fv;
-import static org.lwjgl.opengl.GL20.glUseProgram;
+import static org.lwjgl.opengl.GL20.*;
 
 import java.nio.DoubleBuffer;
 
@@ -40,7 +38,7 @@ public class Renderer extends AbstractRenderer{
     OGLBuffers buffers;
 
     // All shits for shaders
-    int shaderProgram, locProjection, locView, locRotateX;
+    int shaderProgram, locProjection, locView, locRotateX, locLightPos, locEyePos, paramFunc;
 
     // Rotation counter
     float rotate = 0;
@@ -48,7 +46,8 @@ public class Renderer extends AbstractRenderer{
     // Model, View and Projection matrix (KIKM-PGRF3/prednasky/PG3_01.pdf slide: 12)
     Mat4RotX rotateX = new Mat4RotX(rotate);
     Camera view = new Camera();
-    Mat4 projection = new Mat4PerspRH(Math.PI / 4, 1, 0.01, 10000.0);
+    Mat4 projection = new Mat4PerspRH(Math.PI / 4, 1, 0.01, 1000.0);
+    Vec3D lightPos = new Vec3D(0.5, 0.5, 20);
 
     private GLFWKeyCallback   keyCallback = new GLFWKeyCallback() {
         @Override
@@ -181,7 +180,7 @@ public class Renderer extends AbstractRenderer{
     }
 
     void createBuffers() {
-        GridFactory factory = new GridFactory(10,10);
+        GridFactory factory = new GridFactory(100,100);
         float[] vertexBufferData = factory.getVertexBuffer();
         int[] indexBufferData = factory.getIndexBuffer();
 
@@ -212,6 +211,9 @@ public class Renderer extends AbstractRenderer{
         locProjection = glGetUniformLocation(shaderProgram, "projection");
         locView = glGetUniformLocation(shaderProgram, "view");
         locRotateX = glGetUniformLocation(shaderProgram, "rotateX");
+        locLightPos = glGetUniformLocation(shaderProgram, "lightPos");
+        locEyePos = glGetUniformLocation(shaderProgram,"eyePos");
+        paramFunc = glGetUniformLocation(shaderProgram,"paramFunc");
 
         view = view.withPosition(new Vec3D(5, 5, 2.5))
                 .withAzimuth(Math.PI * 1.25)
@@ -241,6 +243,10 @@ public class Renderer extends AbstractRenderer{
         glUniformMatrix4fv(locProjection, false, projection.floatArray());
         glUniformMatrix4fv(locView, false, view.getViewMatrix().floatArray());
         glUniformMatrix4fv(locRotateX, false, rotateX.floatArray());
+        glUniform3f(locLightPos, (float) lightPos.getX(), (float) lightPos.getY(), (float) lightPos.getZ());
+        glUniform3f(locEyePos, (float) view.getEye().getX(), (float) view.getEye().getY(), (float) view.getEye().getZ());
+
+        glUniform1f(paramFunc, (float) 2.0);
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
