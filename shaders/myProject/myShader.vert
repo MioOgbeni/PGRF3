@@ -3,6 +3,7 @@
 
 in vec2 inPosition; // input from the vertex buffer
 
+out vec2 outPosition;
 out vec3 vertColor; // output from this shader to the next pipeline stage
 out vec3 normal_IO;
 out vec3 lightVec;
@@ -37,8 +38,8 @@ vec3 funcSombrero(vec2 inPos) {
 
 vec3 funcSphere(vec2 inPos) {
 	//zemekoule
-	float s = M_PI * 0.5 - M_PI * inPos.x;
-	float t = 2* M_PI * inPos.y;
+	float s = M_PI * 0.5 - M_PI * inPos.y;
+	float t = 2* M_PI * inPos.x;
 	float r = 2;
 
 	return vec3(
@@ -68,12 +69,12 @@ vec3 paramNormal(vec2 inPos){
 }
 
 void main() {
+    outPosition = inPosition;
     vec3 position = paramPos(inPosition);
 	vec3 normal = normalize(paramNormal(inPosition));
 	gl_Position = projection * view * rotateX * vec4(position,1.0);
 
 	vertColor = vec3(normal);
 	normal_IO = normal;
-	lightVec = normalize(lightPos - position);
-	eyeVec = normalize(eyePos - position);
+	lightVec = normalize(lightPos - (rotateX * vec4(position,1.0)).xyz);
 }

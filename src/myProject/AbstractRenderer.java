@@ -21,6 +21,7 @@ import static org.lwjgl.opengl.GL11.glClear;
 import static org.lwjgl.opengl.GL11.glClearColor;
 import static org.lwjgl.opengl.GL11.glViewport;
 
+import java.io.IOException;
 import java.nio.DoubleBuffer;
 
 import org.lwjgl.BufferUtils;
@@ -38,7 +39,7 @@ public abstract class AbstractRenderer {
     protected int height;
     protected OGLTextRenderer textRenderer;
 
-    public void init() {
+    public void init() throws IOException {
         OGLUtils.printOGLparameters();
         OGLUtils.printLWJLparameters();
         OGLUtils.printJAVAparameters();

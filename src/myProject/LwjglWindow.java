@@ -3,6 +3,7 @@ import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.*;
 
+import java.io.IOException;
 import java.nio.*;
 
 import static org.lwjgl.glfw.Callbacks.*;
@@ -32,15 +33,15 @@ public class LwjglWindow {
         }
     }
 
-    public LwjglWindow(AbstractRenderer renderer) {
+    public LwjglWindow(AbstractRenderer renderer) throws IOException {
         this(WIDTH, HEIGHT, renderer, false);
     }
 
-    public LwjglWindow(AbstractRenderer renderer, boolean debug) {
+    public LwjglWindow(AbstractRenderer renderer, boolean debug) throws IOException {
         this(WIDTH, HEIGHT, renderer, debug);
     }
 
-    public LwjglWindow(int width, int height, AbstractRenderer renderer, boolean debug) {
+    public LwjglWindow(int width, int height, AbstractRenderer renderer, boolean debug) throws IOException {
         this.renderer = renderer;
         DEBUG = debug;
         WIDTH = width;
@@ -48,7 +49,7 @@ public class LwjglWindow {
         run();
     }
 
-    public void run() {
+    public void run() throws IOException {
         init();
 
         loop();
@@ -121,7 +122,7 @@ public class LwjglWindow {
         glfwShowWindow(window);
     }
 
-    private void loop() {
+    private void loop() throws IOException {
         // This line is critical for LWJGL's interoperation with GLFW's
         // OpenGL context, or any context that is managed externally.
         // LWJGL detects the context that is current in the current thread,

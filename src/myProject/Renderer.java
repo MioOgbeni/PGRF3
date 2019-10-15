@@ -5,8 +5,10 @@ import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL20.*;
 
+import java.io.IOException;
 import java.nio.DoubleBuffer;
 
+import lwjglutils.*;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFWCursorPosCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
@@ -14,10 +16,6 @@ import org.lwjgl.glfw.GLFWMouseButtonCallback;
 import org.lwjgl.glfw.GLFWScrollCallback;
 import org.lwjgl.glfw.GLFWWindowSizeCallback;
 
-import lwjglutils.OGLBuffers;
-import lwjglutils.OGLTextRenderer;
-import lwjglutils.OGLUtils;
-import lwjglutils.ShaderUtils;
 import transforms.*;
 
 
@@ -44,10 +42,13 @@ public class Renderer extends AbstractRenderer{
     float rotate = 0;
 
     // Model, View and Projection matrix (KIKM-PGRF3/prednasky/PG3_01.pdf slide: 12)
-    Mat4RotX rotateX = new Mat4RotX(rotate);
+    Mat4RotZ rotateX = new Mat4RotZ(rotate);
     Camera view = new Camera();
     Mat4 projection = new Mat4PerspRH(Math.PI / 4, 1, 0.01, 1000.0);
     Vec3D lightPos = new Vec3D(0.5, 0.5, 20);
+
+    OGLTexture2D texture;
+    OGLTexture2D.Viewer textureViewer;
 
     private GLFWKeyCallback   keyCallback = new GLFWKeyCallback() {
         @Override
@@ -193,7 +194,7 @@ public class Renderer extends AbstractRenderer{
     }
 
     @Override
-    public void init() {
+    public void init() throws IOException {
         OGLUtils.printOGLparameters();
         glClearColor(0f, 0f, 0f, 1.0f);
 
@@ -205,6 +206,8 @@ public class Renderer extends AbstractRenderer{
 
         // Shader program set
         glUseProgram(this.shaderProgram);
+
+        texture = new OGLTexture2D("textures/globe.jpg");
 
         // internal OpenGL ID of a shader uniform (constant during one draw call
         // - constant value for all processed vertices or pixels) variable
@@ -223,6 +226,7 @@ public class Renderer extends AbstractRenderer{
         glFrontFace(GL_CCW);
         glEnable(GL_DEPTH_TEST);
 
+        textureViewer = new OGLTexture2D.Viewer();
         textRenderer = new OGLTextRenderer(width, height);
     }
 
@@ -238,20 +242,23 @@ public class Renderer extends AbstractRenderer{
         glUseProgram(shaderProgram);
         // to use the default shader of the "fixed pipeline", call
         //glUseProgram(0);
-        rotate += 0.01;
-        rotateX = new Mat4RotX(rotate);
+        rotate -= 0.01;
+        rotateX = new Mat4RotZ(rotate);
         glUniformMatrix4fv(locProjection, false, projection.floatArray());
         glUniformMatrix4fv(locView, false, view.getViewMatrix().floatArray());
         glUniformMatrix4fv(locRotateX, false, rotateX.floatArray());
         glUniform3f(locLightPos, (float) lightPos.getX(), (float) lightPos.getY(), (float) lightPos.getZ());
-        glUniform3f(locEyePos, (float) view.getEye().getX(), (float) view.getEye().getY(), (float) view.getEye().getZ());
 
         glUniform1f(paramFunc, (float) 2.0);
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+        texture.bind(shaderProgram, "textureID", 0);
+
         // bind and draw
         buffers.draw(GL_TRIANGLES, shaderProgram);
+
+        textureViewer.view(texture, -1, -1, 0.5);
 
         textRenderer.clear();
         textRenderer.addStr2D(3, 20, text);
