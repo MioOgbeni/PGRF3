@@ -36,18 +36,30 @@ public class Renderer extends AbstractRenderer{
     OGLBuffers buffers;
 
     // All shits for shaders
-    int shaderProgram, locProjection, locView, locRotateX, locLightPos, locEyePos, paramFunc;
+    int shaderProgram, locProjection, locView, locRotateX, locLightPos, locEyePos, paramFunc, renderTexture, lightType, mappingType;
 
     // Rotation counter
-    float rotate = 0;
+    float rotateValue = 0;
 
+
+    float functionChanger = 0;
+    float textureToggle = 0;
+    float lightToggle = 0;
+    float mappingToggle = 0;
+
+    Boolean fill = true;
+    Boolean rotate = true;
     // Model, View and Projection matrix (KIKM-PGRF3/prednasky/PG3_01.pdf slide: 12)
-    Mat4RotZ rotateX = new Mat4RotZ(rotate);
+    Mat4RotZ rotateX = new Mat4RotZ(rotateValue);
     Camera view = new Camera();
-    Mat4 projection = new Mat4PerspRH(Math.PI / 4, 1, 0.01, 1000.0);
-    Vec3D lightPos = new Vec3D(0.5, 0.5, 20);
+    Mat4 projPers = new Mat4PerspRH(Math.PI / 4, 1, 0.01, 1000.0);
+    Mat4 projOrth = new Mat4OrthoRH( 3, 3, 0.01, 1000.0);
+    Boolean persp = true;
+    Vec3D lightPos = new Vec3D(10, 0.5, 20);
 
     OGLTexture2D texture;
+    OGLTexture2D texture_n;
+    OGLTexture2D texture_h;
     OGLTexture2D.Viewer textureViewer;
 
     private GLFWKeyCallback   keyCallback = new GLFWKeyCallback() {
@@ -78,11 +90,64 @@ public class Renderer extends AbstractRenderer{
                     case GLFW_KEY_SPACE:
                         view = view.withFirstPerson(!view.getFirstPerson());
                         break;
-                    case GLFW_KEY_R:
-                        view = view.mulRadius(0.9f);
+                    case GLFW_KEY_1:
+                        functionChanger = 0;
+                        break;
+                    case GLFW_KEY_2:
+                        functionChanger = 1;
+                        break;
+                    case GLFW_KEY_3:
+                        functionChanger = 2;
+                        break;
+                    case GLFW_KEY_4:
+                        functionChanger = 3;
+                        break;
+                    case GLFW_KEY_5:
+                        functionChanger = 4;
                         break;
                     case GLFW_KEY_F:
-                        view = view.mulRadius(1.1f);
+                        if(fill){
+                            fill = false;
+                        }else{
+                            fill = true;
+                        }
+                        break;
+                    case GLFW_KEY_R:
+                        if(rotate){
+                            rotate = false;
+                        }else{
+                            rotate = true;
+                        }
+                        break;
+                    case GLFW_KEY_P:
+                        if(persp){
+                            persp = false;
+                        }else{
+                            persp = true;
+                        }
+                        break;
+                    case GLFW_KEY_T:
+                        if(textureToggle == 0){
+                            textureToggle = 1;
+                        }else{
+                            textureToggle = 0;
+                        }
+                        break;
+                    case GLFW_KEY_L:
+                        if(lightToggle == 0){
+                            lightToggle = 1;
+                        }else{
+                            lightToggle = 0;
+                        }
+                        break;
+                    case GLFW_KEY_M:
+                        if(mappingToggle == 0){
+                            mappingToggle = 1;
+                        }else if (mappingToggle == 1){
+                            mappingToggle = 2;
+                        }else{
+                            mappingToggle = 0;
+                        }
                         break;
                 }
             }
@@ -96,7 +161,12 @@ public class Renderer extends AbstractRenderer{
                     (w != width || h != height)) {
                 width = w;
                 height = h;
-                projection = new Mat4PerspRH(Math.PI / 4, height / (double) width, 0.01, 1000.0);
+                if(persp){
+                    projPers = new Mat4PerspRH(Math.PI / 4, height / (double) width, 0.01, 1000.0);
+                }else{
+                    projOrth = new Mat4OrthoRH( height / (double) width, height / (double) width, 0.01, 1000.0);
+                }
+
                 if (textRenderer != null)
                     textRenderer.resize(width, height);
             }
@@ -208,6 +278,8 @@ public class Renderer extends AbstractRenderer{
         glUseProgram(this.shaderProgram);
 
         texture = new OGLTexture2D("textures/globe.jpg");
+        texture_n = new OGLTexture2D("textures/globeNormal.png");
+        texture_h = new OGLTexture2D("textures/globeHeight.jpg");
 
         // internal OpenGL ID of a shader uniform (constant during one draw call
         // - constant value for all processed vertices or pixels) variable
@@ -217,8 +289,11 @@ public class Renderer extends AbstractRenderer{
         locLightPos = glGetUniformLocation(shaderProgram, "lightPos");
         locEyePos = glGetUniformLocation(shaderProgram,"eyePos");
         paramFunc = glGetUniformLocation(shaderProgram,"paramFunc");
+        renderTexture = glGetUniformLocation(shaderProgram,"renderTexture");
+        lightType = glGetUniformLocation(shaderProgram,"lightType");
+        mappingType = glGetUniformLocation(shaderProgram,"mappingType");
 
-        view = view.withPosition(new Vec3D(5, 5, 2.5))
+        view = view.withPosition(new Vec3D(10, 10, 5))
                 .withAzimuth(Math.PI * 1.25)
                 .withZenith(Math.PI * -0.125);
 
@@ -242,26 +317,53 @@ public class Renderer extends AbstractRenderer{
         glUseProgram(shaderProgram);
         // to use the default shader of the "fixed pipeline", call
         //glUseProgram(0);
-        rotate -= 0.01;
-        rotateX = new Mat4RotZ(rotate);
-        glUniformMatrix4fv(locProjection, false, projection.floatArray());
+
+        if(rotate){
+            rotateValue -= 0.01;
+        }
+
+        rotateX = new Mat4RotZ(rotateValue);
+        if(persp){
+            glUniformMatrix4fv(locProjection, false, projPers.floatArray());
+        }else{
+            glUniformMatrix4fv(locProjection, false, projOrth.floatArray());
+        }
+
         glUniformMatrix4fv(locView, false, view.getViewMatrix().floatArray());
         glUniformMatrix4fv(locRotateX, false, rotateX.floatArray());
         glUniform3f(locLightPos, (float) lightPos.getX(), (float) lightPos.getY(), (float) lightPos.getZ());
 
-        glUniform1f(paramFunc, (float) 2.0);
+        glUniform1f(paramFunc, functionChanger);
+        glUniform1f(renderTexture, textureToggle);
+        glUniform1f(lightType, lightToggle);
+        glUniform1f(mappingType, mappingToggle);
 
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        if(fill){
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }else{
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        }
 
-        texture.bind(shaderProgram, "textureID", 0);
 
+        texture.bind(shaderProgram, "texture", 0);
+        texture_n.bind(shaderProgram, "normTex", 0);
+        texture_h.bind(shaderProgram, "heightTex", 0);
         // bind and draw
         buffers.draw(GL_TRIANGLES, shaderProgram);
 
         textureViewer.view(texture, -1, -1, 0.5);
 
         textRenderer.clear();
-        textRenderer.addStr2D(3, 20, text);
+        String controlText = "[LMB] camera, WSAD move, SHIFT up, L.CTRL down";
+        String functionChangeText = "Change object shape by NUM 1-5";
+        String fillText = "F for toggle fill";
+        String rotateText = "R for toggle rotate";
+        String projectionText = "P for toggle projection";
+        String textureText = "T for toggle texture";
+        textRenderer.addStr2D(3, 20, controlText);
+        textRenderer.addStr2D(3, 40, functionChangeText);
+        textRenderer.addStr2D(3, 60, fillText + ", " + rotateText + ", " + projectionText);
+        textRenderer.addStr2D(3, 80, textureText);
         textRenderer.addStr2D(width-90, height-3, " (c) PGRF UHK");
         textRenderer.draw();
     }
