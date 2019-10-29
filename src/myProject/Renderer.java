@@ -4,7 +4,10 @@ package myProject;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL20.*;
+import static org.lwjgl.opengl.GL30.GL_FRAMEBUFFER;
+import static org.lwjgl.opengl.GL30.glBindFramebuffer;
 
+import java.awt.*;
 import java.io.IOException;
 import java.nio.DoubleBuffer;
 
@@ -36,7 +39,7 @@ public class Renderer extends AbstractRenderer{
     OGLBuffers buffers;
 
     // All shits for shaders
-    int shaderProgram, locProjection, locView, locRotateX, locLightPos, locEyePos, paramFunc, renderTexture, lightType, mappingType;
+    int shaderProgram, shaderProgramLight, locProjection, locView, locModel, locLightPos, locEyePos, paramFunc, renderTexture, lightType, surfaceType, testingShader, locObjectColor;
 
     // Rotation counter
     float rotateValue = 0;
@@ -45,7 +48,8 @@ public class Renderer extends AbstractRenderer{
     float functionChanger = 0;
     float textureToggle = 0;
     float lightToggle = 0;
-    float mappingToggle = 0;
+    float surfaceToggle = 0;
+    float testingToggle = 1;
 
     Boolean fill = true;
     Boolean rotate = true;
@@ -55,8 +59,11 @@ public class Renderer extends AbstractRenderer{
     Mat4 projPers = new Mat4PerspRH(Math.PI / 4, 1, 0.01, 1000.0);
     Mat4 projOrth = new Mat4OrthoRH( 3, 3, 0.01, 1000.0);
     Boolean persp = true;
-    Vec3D lightPos = new Vec3D(10, 0.5, 20);
+    Vec3D lightPos = new Vec3D(0, 0, 20);
+    Color objectColor = new Color(0,255,0);
+    Color objectColor2 = new Color(0,0,255);
 
+    OGLRenderTarget renderTarget;
     OGLTexture2D texture;
     OGLTexture2D texture_n;
     OGLTexture2D texture_h;
@@ -140,13 +147,20 @@ public class Renderer extends AbstractRenderer{
                             lightToggle = 0;
                         }
                         break;
-                    case GLFW_KEY_M:
-                        if(mappingToggle == 0){
-                            mappingToggle = 1;
-                        }else if (mappingToggle == 1){
-                            mappingToggle = 2;
+                    case GLFW_KEY_X:
+                        if(testingToggle == 0){
+                            testingToggle = 1;
                         }else{
-                            mappingToggle = 0;
+                            testingToggle = 0;
+                        }
+                        break;
+                    case GLFW_KEY_K:
+                        if(surfaceToggle == 0){
+                            surfaceToggle = 1;
+                        }else if (surfaceToggle == 1){
+                            surfaceToggle = 2;
+                        }else{
+                            surfaceToggle = 0;
                         }
                         break;
                 }
@@ -274,8 +288,14 @@ public class Renderer extends AbstractRenderer{
                 "/myProject/myShader.frag",
                 null,null,null,null);
 
+        shaderProgramLight = ShaderUtils.loadProgram("/myProject/myShaderLight.vert",
+                "/myProject/myShaderLight.frag",
+                null,null,null,null);
         // Shader program set
         glUseProgram(this.shaderProgram);
+
+        // set our render target (texture)
+        renderTarget = new OGLRenderTarget(1024, 1024);
 
         texture = new OGLTexture2D("textures/globe.jpg");
         texture_n = new OGLTexture2D("textures/globeNormal.png");
@@ -285,13 +305,15 @@ public class Renderer extends AbstractRenderer{
         // - constant value for all processed vertices or pixels) variable
         locProjection = glGetUniformLocation(shaderProgram, "projection");
         locView = glGetUniformLocation(shaderProgram, "view");
-        locRotateX = glGetUniformLocation(shaderProgram, "rotateX");
+        locModel = glGetUniformLocation(shaderProgram, "model");
         locLightPos = glGetUniformLocation(shaderProgram, "lightPos");
         locEyePos = glGetUniformLocation(shaderProgram,"eyePos");
         paramFunc = glGetUniformLocation(shaderProgram,"paramFunc");
         renderTexture = glGetUniformLocation(shaderProgram,"renderTexture");
         lightType = glGetUniformLocation(shaderProgram,"lightType");
-        mappingType = glGetUniformLocation(shaderProgram,"mappingType");
+        surfaceType = glGetUniformLocation(shaderProgram,"surfaceType");
+        testingShader = glGetUniformLocation(shaderProgram,"testingShader");
+        locObjectColor = glGetUniformLocation(shaderProgram,"objectColor");
 
         view = view.withPosition(new Vec3D(10, 10, 5))
                 .withAzimuth(Math.PI * 1.25)
@@ -307,7 +329,7 @@ public class Renderer extends AbstractRenderer{
 
     @Override
     public void display() {
-        String text = new String(this.getClass().getName() + ": [LMB] camera, WSAD");
+        renderTarget();
 
         glEnable(GL_DEPTH_TEST);
         glViewport(0, 0, width, height);
@@ -315,8 +337,6 @@ public class Renderer extends AbstractRenderer{
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
 
         glUseProgram(shaderProgram);
-        // to use the default shader of the "fixed pipeline", call
-        //glUseProgram(0);
 
         if(rotate){
             rotateValue -= 0.01;
@@ -330,13 +350,14 @@ public class Renderer extends AbstractRenderer{
         }
 
         glUniformMatrix4fv(locView, false, view.getViewMatrix().floatArray());
-        glUniformMatrix4fv(locRotateX, false, rotateX.floatArray());
+        glUniformMatrix4fv(locModel, false, rotateX.floatArray());
         glUniform3f(locLightPos, (float) lightPos.getX(), (float) lightPos.getY(), (float) lightPos.getZ());
-
+        glUniform3f(locObjectColor, objectColor.getRed(), objectColor.getGreen(), objectColor.getBlue());
         glUniform1f(paramFunc, functionChanger);
         glUniform1f(renderTexture, textureToggle);
         glUniform1f(lightType, lightToggle);
-        glUniform1f(mappingType, mappingToggle);
+        glUniform1f(surfaceType, surfaceToggle);
+        glUniform1f(testingShader, testingToggle);
 
         if(fill){
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -344,14 +365,25 @@ public class Renderer extends AbstractRenderer{
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         }
 
+        renderTarget.getColorTexture().bind(shaderProgram, "mainTex", 0);
+        //texture.bind(shaderProgram, "mainTex", 0);
+        texture_n.bind(shaderProgram, "normTex", 1);
+        texture_h.bind(shaderProgram, "heightTex", 2);
 
-        texture.bind(shaderProgram, "texture", 0);
-        texture_n.bind(shaderProgram, "normTex", 0);
-        texture_h.bind(shaderProgram, "heightTex", 0);
         // bind and draw
         buffers.draw(GL_TRIANGLES, shaderProgram);
 
+
+        glUniform1f(paramFunc, 10);
+        glUniform3f(locObjectColor, objectColor2.getRed(), objectColor2.getGreen(), objectColor2.getBlue());
+        glUniformMatrix4fv(locModel, false, new Mat4Scale(10).mul(new Mat4Transl(-5,-5,-2)).floatArray());
+        buffers.draw(GL_TRIANGLES, shaderProgram);
+
+
+
+
         textureViewer.view(texture, -1, -1, 0.5);
+        textureViewer.view(renderTarget.getColorTexture(), -1, -0.5, 0.5);
 
         textRenderer.clear();
         String controlText = "[LMB] camera, WSAD move, SHIFT up, L.CTRL down";
@@ -367,4 +399,49 @@ public class Renderer extends AbstractRenderer{
         textRenderer.addStr2D(width-90, height-3, " (c) PGRF UHK");
         textRenderer.draw();
     }
+
+    public void renderTarget(){
+        renderTarget.bind();
+        glEnable(GL_DEPTH_TEST);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        if(rotate){
+            rotateValue -= 0.01;
+        }
+
+        rotateX = new Mat4RotZ(rotateValue);
+        if(persp){
+            glUniformMatrix4fv(locProjection, false, projPers.floatArray());
+        }else{
+            glUniformMatrix4fv(locProjection, false, projOrth.floatArray());
+        }
+
+        glUniformMatrix4fv(locView, false, view.getViewMatrix().floatArray());
+        glUniformMatrix4fv(locModel, false, rotateX.floatArray());
+        glUniform3f(locLightPos, (float) lightPos.getX(), (float) lightPos.getY(), (float) lightPos.getZ());
+
+        glUniform1f(paramFunc, functionChanger);
+        glUniform1f(renderTexture, textureToggle);
+        glUniform1f(lightType, lightToggle);
+        glUniform1f(surfaceType, surfaceToggle);
+        glUniform1f(testingShader, testingToggle);
+        glUniform3f(locObjectColor, objectColor.getRed(), objectColor.getGreen(), objectColor.getBlue());
+
+        if(fill){
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }else{
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        }
+
+
+        texture.bind(shaderProgram, "mainTex", 0);
+        texture_n.bind(shaderProgram, "normTex", 1);
+        texture_h.bind(shaderProgram, "heightTex", 2);
+
+        // bind and draw
+        buffers.draw(GL_TRIANGLES, shaderProgram);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
 }

@@ -93,8 +93,6 @@ vec3 paramPos(vec2 inPosition){
      	position = funcGlass(inPosition);
     } else if (paramFunc == 4) {
      	position = funcSomething(inPosition);
-    } else {
-        position = vec3(inPosition, 0);
     }
 	return position;
 }

@@ -9,7 +9,6 @@ uniform float lightType;
 uniform float renderTexture;
 uniform float surfaceType;
 uniform float testingShader;
-uniform vec3 objectColor;
 
 uniform sampler2D mainTex;
 uniform sampler2D normTex;
@@ -27,7 +26,7 @@ void main() {
             float cosAlpha = dot(normal_IO, normalize(lightVec));
             outColor = vec4(vec3(cosAlpha), 1.0);
         }else{
-            outColor = vec4(objectColor.r, objectColor.g, objectColor.b, 1.0);
+            outColor = vec4(1.0, 0.0, 0.0, 1.0);
         }
 
 
