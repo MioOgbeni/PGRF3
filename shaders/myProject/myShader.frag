@@ -9,12 +9,14 @@ uniform vec3 objectColor;
 
 uniform sampler2D mainTex;
 uniform sampler2D normTex;
-uniform sampler2D heightTex;
 uniform sampler2D shadowMap;
+uniform sampler2D heightTex;
 
 out vec4 outColor; // output from the fragment shader
 
 void main() {
+    vec3 coordLightTest = ((coordLight.xyz / coordLight.w) + 1) / 2;
+
     if (surfaceType == 1){
         // barva textura
         outColor = vec4(texture(mainTex, vertPosition).rgb, 1.0);
@@ -29,11 +31,12 @@ void main() {
         // barva hloubka
         outColor = vec4(vec3(gl_FragCoord.zzz), 1.0);
     }else{
-        // barva solid z cpu
-        if (texture(shadowMap, coordLight.xy).z < coordLight.z)
+        //  barva solid z cpu
+        if (texture(shadowMap, vec2(0,0)).z < coordLightTest.z)
         {
-            outColor = vec4(1, 1, 1, 1.0);
-        } else {
+            outColor = vec4(texture(shadowMap, vec2(0,0)).rgb, 1.0);
+        }
+        else {
             outColor = vec4(objectColor.r, objectColor.g, objectColor.b, 1.0);
         }
     }

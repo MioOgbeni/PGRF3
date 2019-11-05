@@ -39,14 +39,15 @@ public class Renderer extends AbstractRenderer{
     OGLBuffers buffers;
 
     // All shits for shaders
-    int shaderProgram, locProjection, locView, locModel, paramFunc, surfaceType, locObjectColor;
+    int shaderProgram, locProjection, locView, locModel, paramFunc, surfaceType, locObjectColor, locMoveInTime;
 
     // All shits for light shaders
-    int shaderProgramLight, locLightVP, locViewLight, locModelLight, locProjectionLight, paramFuncLight;
+    int shaderProgramLight, locMoveInTimeLight, locViewLight, locModelLight, locProjectionLight, paramFuncLight;
 
     // Rotation counter
     float rotateValue = 0;
-    float lightRotateValue = 0;
+    float moveInTime = 0.0f;
+    Boolean moveInTimeUp = true;
 
     float functionChanger = 0;
     float surfaceToggle = 0;
@@ -59,7 +60,6 @@ public class Renderer extends AbstractRenderer{
     Mat4RotY rotateY = new Mat4RotY(0);
     Mat4RotZ rotateZ = new Mat4RotZ(rotateValue);
     Mat4 model = new Mat4();
-
 
     Camera view = new Camera();
     Mat4Transl lightPosition;
@@ -139,11 +139,31 @@ public class Renderer extends AbstractRenderer{
         texture_n.bind(shaderProgram, "normTex", 1);
         texture_h.bind(shaderProgram, "heightTex", 2);
 
+        if(moveInTimeUp){
+            moveInTime = moveInTime + 0.01f;
+            if(moveInTime >= 3.0f){
+                moveInTimeUp = false;
+            }
+        }else {
+            moveInTime = moveInTime - 0.01f;
+            if(moveInTime <= 0.0f){
+                moveInTimeUp = true;
+            }
+        }
+
+        if(rotate){
+            rotateValue -= 0.01;
+        }
+
+        rotateX = new Mat4RotX(0);
+        rotateY = new Mat4RotY(0);
+        rotateZ = new Mat4RotZ(rotateValue);
+        model = rotateX.mul(rotateY.mul(rotateZ));
+
         renderTarget.bind();
         renderFromLight();
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        renderTarget.getDepthTexture().bind(shaderProgram, "shadowMap", 3);
         renderFromViewer();
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -179,7 +199,7 @@ public class Renderer extends AbstractRenderer{
         paramFunc = glGetUniformLocation(shader,"paramFunc");
         surfaceType = glGetUniformLocation(shader,"surfaceType");
         locObjectColor = glGetUniformLocation(shader,"objectColor");
-        locLightVP = glGetUniformLocation(shader, "lightViewProjection");
+        locMoveInTime = glGetUniformLocation(shader,"moveInTime");
 
         locViewLight = glGetUniformLocation(shader, "viewLight");
         locModelLight = glGetUniformLocation(shader, "modelLight");
@@ -191,6 +211,7 @@ public class Renderer extends AbstractRenderer{
         locModelLight = glGetUniformLocation(shader, "model");
         locProjectionLight = glGetUniformLocation(shader, "projection");
         paramFuncLight = glGetUniformLocation(shader,"paramFunc");
+        locMoveInTimeLight = glGetUniformLocation(shader,"moveInTime");
     }
 
     public void renderFromLight(){
@@ -206,9 +227,7 @@ public class Renderer extends AbstractRenderer{
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         }
 
-        if(rotate){
-            rotateValue -= 0.01;
-        }
+        glUniform1f(locMoveInTimeLight, moveInTime);
 
         if(persp){
             glUniformMatrix4fv(locProjectionLight, false, projPers.floatArray());
@@ -218,10 +237,6 @@ public class Renderer extends AbstractRenderer{
 
         glUniformMatrix4fv(locViewLight, false, viewLight.getViewMatrix().floatArray());
 
-        rotateX = new Mat4RotX(0);
-        rotateY = new Mat4RotY(0);
-        rotateZ = new Mat4RotZ(rotateValue);
-        model = rotateX.mul(rotateY.mul(rotateZ));
         glUniformMatrix4fv(locModelLight, false, model.floatArray());
 
         glUniform1f(paramFuncLight, functionChanger);
@@ -242,15 +257,15 @@ public class Renderer extends AbstractRenderer{
         glClearColor(0f, 0f, 0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        renderTarget.getDepthTexture().bind(shaderProgram, "shadowMap", 3);
+
         if(fill){
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }else{
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         }
 
-        if(rotate){
-            rotateValue -= 0.01;
-        }
+        glUniform1f(locMoveInTime, moveInTime);
 
         if(persp){
             glUniformMatrix4fv(locProjection, false, projPers.floatArray());
@@ -260,10 +275,6 @@ public class Renderer extends AbstractRenderer{
 
         glUniformMatrix4fv(locView, false, view.getViewMatrix().floatArray());
 
-        rotateX = new Mat4RotX(0);
-        rotateY = new Mat4RotY(0);
-        rotateZ = new Mat4RotZ(rotateValue);
-        model = rotateX.mul(rotateY.mul(rotateZ));
         glUniformMatrix4fv(locModel, false, model.floatArray());
 
         if(persp){
@@ -289,7 +300,6 @@ public class Renderer extends AbstractRenderer{
         glUniform1f(paramFunc, 0);
         glUniform1f(surfaceType, 10);
         glUniform3f(locObjectColor, 255, 255, 0);
-        lightRotateValue += 0.01;
         glUniformMatrix4fv(locModel, false, new Mat4Scale(0.1).mul(lightPosition).floatArray());
         buffers.draw(GL_TRIANGLES, shaderProgram);
     }

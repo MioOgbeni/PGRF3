@@ -17,6 +17,7 @@ uniform mat4 viewLight;
 uniform mat4 modelLight;
 
 uniform float paramFunc;
+uniform float moveInTime;
 
 const float delta = 0.001;
 
@@ -56,7 +57,7 @@ vec3 funcDeformedBall(vec2 vec)
 	float s = vec.x * M_PI;
 	float t = vec.y * M_PI * 2;
 
-	float rho = 1+0.2*sin(6*s)*sin(5*t);
+	float rho = 1+ moveInTime *sin(6*s)*sin(5*t);
 	float phi = t;
 	float theta = s;
 
@@ -140,5 +141,5 @@ void main() {
 	vertNormal = normal;
 
 	coordLight = projectionLight * viewLight * modelLight * vec4(position,1.0);
-	coordLight.xyz = ((coordLight.xyz / coordLight.w) + 1) / 2;
+
 }
