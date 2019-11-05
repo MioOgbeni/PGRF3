@@ -3,44 +3,31 @@
 
 in vec2 inPosition; // input from the vertex buffer
 
-out vec2 outPosition;
-out vec3 vertColor; // output from this shader to the next pipeline stage
-out vec3 normal_IO;
-out vec3 lightVec;
-out vec3 eyeVec;
-out mat3 tbn;
-out vec2 texCoord;
-
 uniform mat4 projection;
 uniform mat4 view;
 uniform mat4 model;
-uniform vec3 lightPos;
-uniform vec3 eyePos;
-uniform float paramFunc;
 
-uniform float lightType;
-uniform float renderTexture;
-uniform float testingShader;
+uniform float paramFunc;
 
 const float delta = 0.001;
 
 // funkce
 vec3 funcSaddle(vec2 inPos) {
-    // saddle
+	// saddle
 	float s = inPos.x * 2 - 1;
 	float t = inPos.y * 2 -1;
 	return vec3(s,t,s*s - t*t);
 }
 
 vec3 funcSomething(vec2 inPos) {
-    // something
+	// something
 	float s = inPos.x * 8 - 1;
 	float t = inPos.y * 8 - 1;
 
 	return vec3(
-			(2 + t * cos(s/2) * cos(s)),
-			(2 + t * cos(s/2) * sin(s)),
-			(t * sin(s/2)));
+	(2 + t * cos(s/2) * cos(s)),
+	(2 + t * cos(s/2) * sin(s)),
+	(t * sin(s/2)));
 }
 
 vec3 funcSphere(vec2 inPos) {
@@ -50,20 +37,36 @@ vec3 funcSphere(vec2 inPos) {
 	float r = 2;
 
 	return vec3(
-			cos(t) * cos(s) * r,
-			sin(t) * cos(s) * r,
-			sin(s) * r);
+	cos(t) * cos(s) * r,
+	sin(t) * cos(s) * r,
+	sin(s) * r);
+}
+
+vec3 funcDeformedBall(vec2 vec)
+{
+	float s = vec.x * M_PI;
+	float t = vec.y * M_PI * 2;
+
+	float rho = 1+0.2*sin(6*s)*sin(5*t);
+	float phi = t;
+	float theta = s;
+
+	float x = rho * sin(phi) * cos(theta);
+	float y = rho * sin(phi) * sin(theta);
+	float z = rho * cos(phi);
+
+	return vec3(x, y, z);
 }
 
 vec3 funcSombrero(vec2 inPos) {
- 	// sombrero
- 		float s = M_PI * 0.5 - M_PI * inPos.x *2;
- 		float t = 2 * M_PI * inPos.y;
+	// sombrero
+	float s = M_PI * 0.5 - M_PI * inPos.x *2;
+	float t = 2 * M_PI * inPos.y;
 
- 		return vec3(
- 				t*cos(s),
- 				t*sin(s),
- 				2*sin(t))/2;
+	return vec3(
+	t*cos(s),
+	t*sin(s),
+	2*sin(t))/2;
 }
 
 vec3 funcGlass(vec2 inPos){
@@ -74,9 +77,9 @@ vec3 funcGlass(vec2 inPos){
 	float th = s;
 
 	return vec3(
-		r*cos(th),
-		r*sin(th),
-		t);
+	r*cos(th),
+	r*sin(th),
+	t);
 }
 
 
@@ -84,16 +87,20 @@ vec3 paramPos(vec2 inPosition){
 	vec3 position;
 
 	if (paramFunc == 0) {
-		position = funcSaddle(inPosition);
-	} else if (paramFunc == 1) {
-		position = funcSombrero(inPosition);
-	} else if (paramFunc == 2) {
 		position = funcSphere(inPosition);
+	} else if (paramFunc == 1) {
+		position = funcDeformedBall(inPosition);
+	} else if (paramFunc == 2) {
+		position = funcSaddle(inPosition);
 	} else if (paramFunc == 3) {
-     	position = funcGlass(inPosition);
-    } else if (paramFunc == 4) {
-     	position = funcSomething(inPosition);
-    }
+		position = funcSomething(inPosition);
+	} else if (paramFunc == 4) {
+		position = funcSombrero(inPosition);
+	} else if (paramFunc == 5) {
+		position = funcGlass(inPosition);
+	} else {
+		position = vec3(inPosition, 0);
+	}
 	return position;
 }
 
@@ -116,52 +123,6 @@ mat3 paramTangent(vec2 inPos){
 }
 
 void main() {
-	if(testingShader == 1){
-
-		outPosition = inPosition;
-		vec3 position = paramPos(inPosition);
-		vec3 normal = normalize(paramNormal(inPosition));
-		gl_Position = projection * view * model * vec4(position,1.0);
-
-		vertColor = vec3(normal);
-		normal_IO = normal;
-		lightVec = normalize(lightPos - (model * vec4(position,1.0)).xyz);
-
-	}else if (testingShader == 0){
-
-        outPosition = inPosition;
-        vec3 position = paramPos(inPosition);
-        vec3 normal = normalize(paramNormal(inPosition));
-        gl_Position = projection * view * model * vec4(position,1.0);
-
-        lightVec = normalize(lightPos - position);
-        eyeVec = normalize(eyePos - position);
-        normal_IO = normal;
-
-		// osvetleni per vertex
-		if (lightType == 0) {
-
-			float diff = max(0,dot(normal, lightVec));
-			vec3 halfVec = normalize(eyeVec + lightVec);
-			float spec = dot(normal, halfVec);
-			spec = max(0,spec);
-			spec = pow(spec, 10);
-			float ambient = 0.1;
-
-			if (renderTexture == 1) {
-				vertColor=vec3(1,1,1) * (min(ambient + diff,1)) + vec3(1,1,1) * spec;
-			} else {
-				vertColor=vec3(inPosition,0) * (min(ambient + diff,1)) + vec3(1,1,1) * spec;
-			}
-
-		}
-
-		//textury
-
-		if (renderTexture == 1) {
-			int aux = int(dot(abs(normal) * vec3(0, 1, 2), vec3(1, 1, 1)));
-			texCoord = vec2(inPosition[(aux + 1) % 3], inPosition[(aux + 2) % 3]);
-		}
-
-	}
+	vec3 position = paramPos(inPosition);
+	gl_Position = projection * view * model * vec4(position,1.0);
 }

@@ -3,6 +3,7 @@ package myProject;
 public class GridFactory {
     float[] vertexBuffer;
     int[] indexBuffer;
+
     int[] indexBufferStrip;
 
     public GridFactory(){
@@ -41,21 +42,40 @@ public class GridFactory {
         }
     }
 
-    private void createIBStrip(int xSize, int ySize){
-        indexBufferStrip = new int[6 * (ySize - 1) * (xSize - 1)];
-        int index = 0;
-        for (int y = 0; y < ySize - 1; y+=2) {
-            int xHelp = 0;
-            for (int x = 0; x < xSize - 1; x+=2) {
-                indexBufferStrip[index++] = y * xSize + x;
-                indexBufferStrip[index++] = (y + 1) * xSize + x;
-                indexBufferStrip[index++] = y * xSize + x + 1;
-                indexBufferStrip[index++] = (y + 1) * xSize + x + 1;
-                xHelp = x;
+    private int[] createIBStrip(int xSize, int ySize)
+    {
+        int naSudej = ySize % 2 + ySize;
+        indexBufferStrip = new int[(((ySize * 4) + 2) * (naSudej / 2) - (ySize * 2 + 2)) - (ySize % 2 * (ySize * 2))];
+        int index2 = 0;
+        boolean smerGenerovani = true;
+        for (int j = 0; j < ySize - 1; j++)
+        {
+            int pom = 0;
+
+            if(smerGenerovani)
+            {
+                for (int i = 0; i < xSize; i++)
+                {
+                    indexBufferStrip[index2++] = (j * xSize) + i;
+                    indexBufferStrip[index2++] = ((j + 1) * xSize) + i;
+                    pom = i;
+                }
+                if (j < (ySize - 2))
+                {
+                    indexBufferStrip[index2++] = ((j + 1) * xSize) + (pom);
+                    indexBufferStrip[index2++] = ((j + 1) * xSize) + (pom);
+                }
+            } else {
+                for (int i = (xSize - 1); i > -1; i --)
+                {
+                    indexBufferStrip[index2++] = ((j + 1) * xSize) + i;
+                    indexBufferStrip[index2++] = (j * xSize) + i;
+                }
             }
-            indexBufferStrip[index++] = y * xSize + xHelp;
-            indexBufferStrip[index++] = (y + 1) * xSize + xHelp;
+            smerGenerovani = !smerGenerovani;
         }
+
+        return indexBufferStrip;
     }
 
     public float[] getVertexBuffer() {
@@ -64,5 +84,9 @@ public class GridFactory {
 
     public int[] getIndexBuffer() {
         return indexBuffer;
+    }
+
+    public int[] getIndexBufferStrip() {
+        return indexBufferStrip;
     }
 }

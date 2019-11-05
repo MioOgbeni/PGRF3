@@ -6,11 +6,7 @@ import org.lwjgl.system.*;
 
 import lwjglutils.ShaderUtils;
 import lwjglutils.ToFloatArray;
-import transforms.Camera;
-import transforms.Mat4;
-import transforms.Mat4PerspRH;
-import transforms.Mat4Scale;
-import transforms.Vec3D;
+import transforms.*;
 import lwjglutils.OGLBuffers;
 import lwjglutils.OGLRenderTarget;
 import lwjglutils.OGLTextRenderer;
@@ -58,7 +54,10 @@ public class HelloWorld {
 	OGLTexture2D texture;
 	
 	Camera cam = new Camera();
-	Mat4 proj = new Mat4PerspRH(Math.PI / 4, 1, 1, 10.0);
+
+	Mat4 projPers = new Mat4PerspRH(Math.PI / 4, 1, 1, 10.0);
+	Mat4 projOrth = new Mat4OrthoRH( Math.PI / 4, 1, 1, 10.0);
+	Mat4 proj = projPers;
 
 	OGLRenderTarget renderTarget;
 	OGLTexture2D.Viewer textureViewer;
@@ -113,6 +112,9 @@ public class HelloWorld {
 					cam = cam.mulRadius(0.9f);
 					break;
 				case GLFW_KEY_F:
+					cam = cam.mulRadius(1.1f);
+					break;
+					case GLFW_KEY_P:
 					cam = cam.mulRadius(1.1f);
 					break;
 				}
