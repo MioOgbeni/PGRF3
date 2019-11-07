@@ -140,5 +140,5 @@ void main() {
 	vertColor = vec4(position,1.0).xyz;
 	vertNormal = normal;
 
-	coordLight = projectionLight * viewLight * modelLight * vec4(position,1.0);
+	coordLight = projectionLight * viewLight * vec4(position,1.0);
 }

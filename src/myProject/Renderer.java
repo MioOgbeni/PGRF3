@@ -161,7 +161,6 @@ public class Renderer extends AbstractRenderer{
         rotateZ = new Mat4RotZ(rotateValue);
         model = rotateX.mul(rotateY.mul(rotateZ));
 
-
         renderFromLight();
         renderFromViewer();
 
@@ -262,7 +261,7 @@ public class Renderer extends AbstractRenderer{
         }
 
         //----------------------------------------------------Setup main object in scene
-        glUniform1f(locMoveInTimeLight, moveInTime); //move him
+        glUniform1f(locMoveInTime, moveInTime); //move him
 
         glUniformMatrix4fv(locView, false, view.getViewMatrix().floatArray()); //set view from viewer
 
