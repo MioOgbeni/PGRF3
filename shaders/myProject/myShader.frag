@@ -9,8 +9,8 @@ uniform vec3 objectColor;
 
 uniform sampler2D mainTex;
 uniform sampler2D normTex;
-uniform sampler2D shadowMap;
 uniform sampler2D heightTex;
+uniform sampler2D shadowMap;
 
 out vec4 outColor; // output from the fragment shader
 
@@ -32,12 +32,15 @@ void main() {
         outColor = vec4(vec3(gl_FragCoord.zzz), 1.0);
     }else{
         //  barva solid z cpu
-        if (texture(shadowMap, vec2(0,0)).z < coordLightTest.z)
+        if (texture(shadowMap, vertPosition.xy).z < coordLightTest.z)
         {
-            outColor = vec4(texture(shadowMap, vec2(0,0)).rgb, 1.0);
+            outColor = vec4(texture(shadowMap, vertPosition.xy).rgb, 1.0);
+            //outColor = vec4(objectColor.g, objectColor.r, objectColor.b, 1.0);
         }
         else {
             outColor = vec4(objectColor.r, objectColor.g, objectColor.b, 1.0);
         }
     }
+
+    //outColor = vec4(texture(shadowMap, vertPosition).rgb, 1.0);
 }

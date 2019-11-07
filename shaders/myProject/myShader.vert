@@ -141,5 +141,4 @@ void main() {
 	vertNormal = normal;
 
 	coordLight = projectionLight * viewLight * modelLight * vec4(position,1.0);
-
 }

@@ -65,8 +65,8 @@ public class Renderer extends AbstractRenderer{
     Mat4Transl lightPosition;
     Camera viewLight = new Camera();
 
-    Mat4 projPers = new Mat4PerspRH(Math.PI / 3, LwjglWindow.HEIGHT/(float)LwjglWindow.WIDTH, 1, 200);
-    Mat4 projOrth = new Mat4OrthoRH( 10, 10, 1, 200);
+    Mat4 projPers = new Mat4PerspRH(Math.PI / 3, LwjglWindow.HEIGHT/(float)LwjglWindow.WIDTH, 2, 30);
+    Mat4 projOrth = new Mat4OrthoRH( 10, 10, 2, 30);
     Boolean persp = true;
 
 
@@ -124,6 +124,7 @@ public class Renderer extends AbstractRenderer{
         glEnable(GL_DEPTH_TEST);
 
         textureViewer = new OGLTexture2D.Viewer();
+
         textRenderer = new OGLTextRenderer(width, height);
 
         renderTarget = new OGLRenderTarget(width, height);
@@ -160,16 +161,15 @@ public class Renderer extends AbstractRenderer{
         rotateZ = new Mat4RotZ(rotateValue);
         model = rotateX.mul(rotateY.mul(rotateZ));
 
-        renderTarget.bind();
-        renderFromLight();
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+        renderFromLight();
         renderFromViewer();
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         textureViewer.view(texture, -1, -1, 0.5);
         textureViewer.view(renderTarget.getDepthTexture(), -1, -0.5, 0.5);
+
         if(fill){
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }else{
@@ -192,6 +192,125 @@ public class Renderer extends AbstractRenderer{
         textRenderer.draw();
     }
 
+    public void renderFromLight(){
+        //----------------------------------------------------From Light
+        renderTarget.bind(); //bind light buffer
+
+        glUseProgram(shaderProgramLight);   //setup shader program
+        glViewport(0,0, width, height); //setup window
+
+        glClearColor(0f, 0f, 0f, 1.0f); //clear window
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear buffers
+
+        //setup scene filling
+        if(fill){
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }else{
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        }
+
+        //setup scene projection
+        if(persp){
+            glUniformMatrix4fv(locProjectionLight, false, projPers.floatArray());
+        }else{
+            glUniformMatrix4fv(locProjectionLight, false, projOrth.floatArray());
+        }
+
+        //----------------------------------------------------Setup main object in scene
+        glUniform1f(locMoveInTimeLight, moveInTime); //move him
+
+        glUniformMatrix4fv(locViewLight, false, viewLight.getViewMatrix().floatArray()); //set view from light
+
+        glUniformMatrix4fv(locModelLight, false, model.floatArray()); //set model for light
+
+        glUniform1f(paramFuncLight, functionChanger); //his shape
+
+        buffers.draw(GL_TRIANGLES, shaderProgramLight); //draw him
+
+        //----------------------------------------------------Setup base plane object
+        glUniform1f(paramFuncLight, 10); //it fill be plane
+
+        glUniformMatrix4fv(locModelLight, false, new Mat4Scale(10).mul(new Mat4Transl(-5,-5,-2)).floatArray()); //his position and scale
+
+        buffers.draw(GL_TRIANGLES, shaderProgramLight); //draw him
+    }
+
+    public void renderFromViewer(){
+        //----------------------------------------------------From Viewer
+        glBindFramebuffer(GL_FRAMEBUFFER, 0); //change viewer buffer
+
+        glUseProgram(shaderProgram); //setup shader program
+        glViewport(0,0, width, height); //setup window
+
+        glClearColor(0f, 0f, 0f, 1.0f); //clear window
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear buffers
+
+        renderTarget.getDepthTexture().bind(shaderProgram, "shadowMap", 3); //bind light buffer like a viewer texture
+
+        //setup scene filling
+        if(fill){
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }else{
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        }
+
+        //setup scene projection
+        if(persp){
+            glUniformMatrix4fv(locProjection, false, projPers.floatArray());
+        }else{
+            glUniformMatrix4fv(locProjection, false, projOrth.floatArray());
+        }
+
+        //----------------------------------------------------Setup main object in scene
+        glUniform1f(locMoveInTimeLight, moveInTime); //move him
+
+        glUniformMatrix4fv(locView, false, view.getViewMatrix().floatArray()); //set view from viewer
+
+        glUniformMatrix4fv(locModel, false, model.floatArray()); //set model for viewer
+
+        glUniformMatrix4fv(locViewLight, false, viewLight.getViewMatrix().floatArray()); //set view for shadow
+        glUniformMatrix4fv(locModelLight, false, model.floatArray()); //set model for shadow
+
+        glUniform1f(paramFunc, functionChanger); //his shape
+        glUniform1f(surfaceType, surfaceToggle); //his color
+        glUniform3f(locObjectColor, objectColor.getRed(), objectColor.getGreen(), objectColor.getBlue()); //if color is <1 or 4< use this color from cpu
+
+        buffers.draw(GL_TRIANGLES, shaderProgram); //draw him
+
+        //----------------------------------------------------Setup base plane object
+        glUniform1f(paramFunc, 10); //his shape
+        glUniform1f(surfaceType, 10); //his color
+        glUniform3f(locObjectColor, objectColor2.getRed(), objectColor2.getGreen(), objectColor2.getBlue()); //if color is <1 or 4< use this color from cpu
+        glUniformMatrix4fv(locModel, false, new Mat4Scale(10).mul(new Mat4Transl(-5,-5,-2)).floatArray()); //his position and scale
+        buffers.draw(GL_TRIANGLES, shaderProgram); //draw him
+
+        //----------------------------------------------------Setup light bulb
+        glUniform1f(paramFunc, 0); //his shape
+        glUniform1f(surfaceType, 10); //his color
+        glUniform3f(locObjectColor, 255, 255, 0); //if color is <1 or 4< use this color from cpu
+        glUniformMatrix4fv(locModel, false, new Mat4Scale(0.1).mul(lightPosition).floatArray()); //his position and scale
+        buffers.draw(GL_TRIANGLES, shaderProgram); //draw him
+    }
+
+    void createBuffers() {
+        GridFactory factory = new GridFactory(100,100);
+        float[] vertexBufferData = factory.getVertexBuffer();
+
+        int[] indexBufferData;
+        if(!strip){
+            indexBufferData = factory.getIndexBuffer();
+        }else{
+            indexBufferData = factory.getIndexBufferStrip();
+        }
+
+        // vertex binding description, concise version
+        OGLBuffers.Attrib[] attributes = {
+                new OGLBuffers.Attrib("inPosition", 2), // 2 floats
+        };
+
+        buffers = new OGLBuffers(vertexBufferData, attributes, indexBufferData);
+    }
+
     private void loadShader(int shader) {
         locView = glGetUniformLocation(shader, "view");
         locModel = glGetUniformLocation(shader, "model");
@@ -212,115 +331,6 @@ public class Renderer extends AbstractRenderer{
         locProjectionLight = glGetUniformLocation(shader, "projection");
         paramFuncLight = glGetUniformLocation(shader,"paramFunc");
         locMoveInTimeLight = glGetUniformLocation(shader,"moveInTime");
-    }
-
-    public void renderFromLight(){
-        glUseProgram(shaderProgramLight);
-        glViewport(0,0, width, height);
-
-        glClearColor(0f, 0f, 0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        if(fill){
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        }else{
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        }
-
-        glUniform1f(locMoveInTimeLight, moveInTime);
-
-        if(persp){
-            glUniformMatrix4fv(locProjectionLight, false, projPers.floatArray());
-        }else{
-            glUniformMatrix4fv(locProjectionLight, false, projOrth.floatArray());
-        }
-
-        glUniformMatrix4fv(locViewLight, false, viewLight.getViewMatrix().floatArray());
-
-        glUniformMatrix4fv(locModelLight, false, model.floatArray());
-
-        glUniform1f(paramFuncLight, functionChanger);
-
-        buffers.draw(GL_TRIANGLES, shaderProgramLight);
-
-        glUniform1f(paramFuncLight, 10);
-        glUniformMatrix4fv(locModelLight, false, new Mat4Scale(10).mul(new Mat4Transl(-5,-5,-2)).floatArray());
-        buffers.draw(GL_TRIANGLES, shaderProgramLight);
-    }
-
-    public void renderFromViewer(){
-        glUseProgram(shaderProgram);
-        glViewport(0,0, width, height);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        glClearColor(0f, 0f, 0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        renderTarget.getDepthTexture().bind(shaderProgram, "shadowMap", 3);
-
-        if(fill){
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        }else{
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        }
-
-        glUniform1f(locMoveInTime, moveInTime);
-
-        if(persp){
-            glUniformMatrix4fv(locProjection, false, projPers.floatArray());
-        }else{
-            glUniformMatrix4fv(locProjection, false, projOrth.floatArray());
-        }
-
-        glUniformMatrix4fv(locView, false, view.getViewMatrix().floatArray());
-
-        glUniformMatrix4fv(locModel, false, model.floatArray());
-
-        if(persp){
-            glUniformMatrix4fv(locProjectionLight, false, projPers.floatArray());
-        }else{
-            glUniformMatrix4fv(locProjectionLight, false, projOrth.floatArray());
-        }
-        glUniformMatrix4fv(locViewLight, false, viewLight.getViewMatrix().floatArray());
-        glUniformMatrix4fv(locModelLight, false, model.floatArray());
-
-        glUniform1f(paramFunc, functionChanger);
-        glUniform1f(surfaceType, surfaceToggle);
-        glUniform3f(locObjectColor, objectColor.getRed(), objectColor.getGreen(), objectColor.getBlue());
-
-        buffers.draw(GL_TRIANGLES, shaderProgram);
-
-        glUniform1f(paramFunc, 10);
-        glUniform1f(surfaceType, 10);
-        glUniform3f(locObjectColor, objectColor2.getRed(), objectColor2.getGreen(), objectColor2.getBlue());
-        glUniformMatrix4fv(locModel, false, new Mat4Scale(10).mul(new Mat4Transl(-5,-5,-2)).floatArray());
-        buffers.draw(GL_TRIANGLES, shaderProgram);
-
-        glUniform1f(paramFunc, 0);
-        glUniform1f(surfaceType, 10);
-        glUniform3f(locObjectColor, 255, 255, 0);
-        glUniformMatrix4fv(locModel, false, new Mat4Scale(0.1).mul(lightPosition).floatArray());
-        buffers.draw(GL_TRIANGLES, shaderProgram);
-    }
-
-    void createBuffers() {
-        GridFactory factory = new GridFactory(100,100);
-        float[] vertexBufferData = factory.getVertexBuffer();
-
-        int[] indexBufferData;
-        if(!strip){
-            indexBufferData = factory.getIndexBuffer();
-        }else{
-            indexBufferData = factory.getIndexBufferStrip();
-        }
-
-        // vertex binding description, concise version
-        OGLBuffers.Attrib[] attributes = {
-                new OGLBuffers.Attrib("inPosition", 2), // 2 floats
-        };
-
-        buffers = new OGLBuffers(vertexBufferData, attributes, indexBufferData);
     }
 
     private GLFWKeyCallback   keyCallback = new GLFWKeyCallback() {
@@ -428,9 +438,9 @@ public class Renderer extends AbstractRenderer{
                 width = w;
                 height = h;
                 if(persp){
-                    projPers = new Mat4PerspRH(Math.PI / 3, height / (double) width, 1, 200);
+                    projPers = new Mat4PerspRH(Math.PI / 3, height / (double) width, 2, 30);
                 }else{
-                    projOrth = new Mat4OrthoRH( 10, 10, 1, 200);
+                    projOrth = new Mat4OrthoRH( 10, 10, 2, 30);
                 }
 
                 if (textRenderer != null)
