@@ -3,7 +3,7 @@
 
 in vec2 inPosition; // input from the vertex buffer
 
-out vec2 vertPosition;
+out vec3 vertPosition;
 out vec3 vertColor; // output from this shader to the next pipeline stage
 out vec3 vertNormal;
 out vec4 coordLight;
@@ -12,9 +12,7 @@ uniform mat4 projection;
 uniform mat4 view;
 uniform mat4 model;
 
-uniform mat4 projectionLight;
 uniform mat4 viewLight;
-uniform mat4 modelLight;
 
 uniform float paramFunc;
 uniform float moveInTime;
@@ -133,12 +131,13 @@ mat3 paramTangent(vec2 inPos){
 }
 
 void main() {
-	vertPosition = inPosition;
+	vertPosition = vec3(inPosition, 1.0);
 	vec3 position = paramPos(inPosition);
-	vec3 normal = normalize(paramNormal(inPosition));
-	gl_Position = projection * view * model * vec4(position,1.0);
-	vertColor = vec4(position,1.0).xyz;
+	vec3 normal = transpose(inverse(mat3(view)*mat3(model))) * paramNormal(inPosition);
+
+	vertColor =  (model * vec4(position,1.0)).xyz;
 	vertNormal = normal;
 
-	coordLight = projectionLight * viewLight * vec4(position,1.0);
+	coordLight = projection * viewLight * model * vec4(position, 1.0);
+	gl_Position = projection * view * model * vec4(position, 1.0);
 }

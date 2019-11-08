@@ -39,7 +39,7 @@ public class Renderer extends AbstractRenderer{
     OGLBuffers buffers;
 
     // All shits for shaders
-    int shaderProgram, locProjection, locView, locModel, paramFunc, surfaceType, locObjectColor, locMoveInTime;
+    int shaderProgram, locProjection, locView, locModel, paramFunc, surfaceType, locObjectColor, locMoveInTime, locLightPos, locViewPos, locLightBulb;
 
     // All shits for light shaders
     int shaderProgramLight, locMoveInTimeLight, locViewLight, locModelLight, locProjectionLight, paramFuncLight;
@@ -95,16 +95,12 @@ public class Renderer extends AbstractRenderer{
                 "/myProject/myShaderLight.frag",
                 null,null,null,null);
 
-        glUseProgram(shaderProgram);
-
         texture = new OGLTexture2D("textures/globe.jpg");
         texture_n = new OGLTexture2D("textures/globeNormal.png");
         texture_h = new OGLTexture2D("textures/globeHeight.jpg");
 
         // internal OpenGL ID of a shader uniform (constant during one draw call
         // - constant value for all processed vertices or pixels) variable
-        loadShader(shaderProgram);
-        loadShaderLight(shaderProgramLight);
 
         view = new Camera()
                 .withPosition(new Vec3D(10, 10, 5))
@@ -119,9 +115,8 @@ public class Renderer extends AbstractRenderer{
                 .withZenith(-1 / 5f * Math.PI);
         lightPosition = new Mat4Transl(viewLight.getPosition().getX(), viewLight.getPosition().getY(), viewLight.getPosition().getZ());
 
-        glDisable(GL_CULL_FACE);
-        glFrontFace(GL_CCW);
         glEnable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
 
         textureViewer = new OGLTexture2D.Viewer();
 
@@ -132,9 +127,8 @@ public class Renderer extends AbstractRenderer{
 
     @Override
     public void display() {
-        glDisable(GL_CULL_FACE);
-        glFrontFace(GL_CCW);
         glEnable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
 
         texture.bind(shaderProgram, "mainTex", 0);
         texture_n.bind(shaderProgram, "normTex", 1);
@@ -161,7 +155,9 @@ public class Renderer extends AbstractRenderer{
         rotateZ = new Mat4RotZ(rotateValue);
         model = rotateX.mul(rotateY.mul(rotateZ));
 
+        glCullFace(GL_FRONT);
         renderFromLight();
+        glCullFace(GL_BACK);
         renderFromViewer();
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -196,6 +192,7 @@ public class Renderer extends AbstractRenderer{
         renderTarget.bind(); //bind light buffer
 
         glUseProgram(shaderProgramLight);   //setup shader program
+        loadShaderLight(shaderProgramLight);
         glViewport(0,0, width, height); //setup window
 
         glClearColor(0f, 0f, 0f, 1.0f); //clear window
@@ -239,6 +236,7 @@ public class Renderer extends AbstractRenderer{
         glBindFramebuffer(GL_FRAMEBUFFER, 0); //change viewer buffer
 
         glUseProgram(shaderProgram); //setup shader program
+        loadShader(shaderProgram);
         glViewport(0,0, width, height); //setup window
 
         glClearColor(0f, 0f, 0f, 1.0f); //clear window
@@ -260,6 +258,9 @@ public class Renderer extends AbstractRenderer{
             glUniformMatrix4fv(locProjection, false, projOrth.floatArray());
         }
 
+        glUniform3f(locLightPos, (float) viewLight.getPosition().getX(), (float) viewLight.getPosition().getY(), (float) viewLight.getPosition().getZ());
+        glUniform3f(locViewPos, (float) view.getPosition().getX(), (float) view.getPosition().getY(), (float) view.getPosition().getZ());
+
         //----------------------------------------------------Setup main object in scene
         glUniform1f(locMoveInTime, moveInTime); //move him
 
@@ -268,7 +269,6 @@ public class Renderer extends AbstractRenderer{
         glUniformMatrix4fv(locModel, false, model.floatArray()); //set model for viewer
 
         glUniformMatrix4fv(locViewLight, false, viewLight.getViewMatrix().floatArray()); //set view for shadow
-        glUniformMatrix4fv(locModelLight, false, model.floatArray()); //set model for shadow
 
         glUniform1f(paramFunc, functionChanger); //his shape
         glUniform1f(surfaceType, surfaceToggle); //his color
@@ -284,11 +284,13 @@ public class Renderer extends AbstractRenderer{
         buffers.draw(GL_TRIANGLES, shaderProgram); //draw him
 
         //----------------------------------------------------Setup light bulb
+        glUniform1i(locLightBulb, 1);
         glUniform1f(paramFunc, 0); //his shape
         glUniform1f(surfaceType, 10); //his color
         glUniform3f(locObjectColor, 255, 255, 0); //if color is <1 or 4< use this color from cpu
         glUniformMatrix4fv(locModel, false, new Mat4Scale(0.1).mul(lightPosition).floatArray()); //his position and scale
         buffers.draw(GL_TRIANGLES, shaderProgram); //draw him
+        glUniform1i(locLightBulb, 0);
     }
 
     void createBuffers() {
@@ -318,10 +320,11 @@ public class Renderer extends AbstractRenderer{
         surfaceType = glGetUniformLocation(shader,"surfaceType");
         locObjectColor = glGetUniformLocation(shader,"objectColor");
         locMoveInTime = glGetUniformLocation(shader,"moveInTime");
+        locLightBulb = glGetUniformLocation(shader,"lightBulb");
 
         locViewLight = glGetUniformLocation(shader, "viewLight");
-        locModelLight = glGetUniformLocation(shader, "modelLight");
-        locProjectionLight = glGetUniformLocation(shader, "projectionLight");
+        locLightPos = glGetUniformLocation(shader, "lightPos");
+        locViewPos = glGetUniformLocation(shader, "viewPos");
     }
 
     private void loadShaderLight(int shader) {
