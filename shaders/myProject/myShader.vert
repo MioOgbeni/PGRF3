@@ -5,8 +5,11 @@ in vec2 inPosition; // input from the vertex buffer
 
 out vec3 vertPosition;
 out vec3 vertColor; // output from this shader to the next pipeline stage
+out vec3 vertColorNormal;
 out vec3 vertNormal;
 out vec4 coordLight;
+
+out vec3 fragPos;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -16,6 +19,8 @@ uniform mat4 viewLight;
 
 uniform float paramFunc;
 uniform float moveInTime;
+
+uniform float lightType;
 
 const float delta = 0.001;
 
@@ -119,24 +124,15 @@ vec3 paramNormal(vec2 inPos){
 	return cross(tx,ty);
 }
 
-mat3 paramTangent(vec2 inPos){
-	float delta = 0.001;
-	vec3 tx = paramPos(inPos + vec2(delta,0)) - paramPos(inPos - vec2(delta,0));
-	vec3 ty = paramPos(inPos + vec2(0,delta)) - paramPos(inPos - vec2(0,delta));
-	tx= normalize(tx);
-	ty = normalize(ty);
-	vec3 tz = cross(tx,ty);
-	ty = cross(tz,tx);
-	return mat3(tx,ty,tz);
-}
-
 void main() {
 	vertPosition = vec3(inPosition, 1.0);
 	vec3 position = paramPos(inPosition);
-	vec3 normal = transpose(inverse(mat3(view)*mat3(model))) * paramNormal(inPosition);
+	vec3 normal = transpose(inverse(mat3(model))) * paramNormal(inPosition);
 
 	vertColor =  (model * vec4(position,1.0)).xyz;
+	vertColorNormal = paramNormal(inPosition);
 	vertNormal = normal;
+	fragPos = vec3(model * vec4(position, 1.0));
 
 	coordLight = projection * viewLight * model * vec4(position, 1.0);
 	gl_Position = projection * view * model * vec4(position, 1.0);

@@ -39,7 +39,7 @@ public class Renderer extends AbstractRenderer{
     OGLBuffers buffers;
 
     // All shits for shaders
-    int shaderProgram, locProjection, locView, locModel, paramFunc, surfaceType, locObjectColor, locMoveInTime, locLightPos, locViewPos, locLightBulb;
+    int shaderProgram, locProjection, locView, locModel, paramFunc, surfaceType, locObjectColor, locMoveInTime, locLightPos, locViewPos, locLightBulb, locLightType;
 
     // All shits for light shaders
     int shaderProgramLight, locMoveInTimeLight, locViewLight, locModelLight, locProjectionLight, paramFuncLight;
@@ -52,6 +52,9 @@ public class Renderer extends AbstractRenderer{
     float functionChanger = 0;
     float surfaceToggle = 0;
     String surfaceToggleDescriptor = "set color from CPU";
+    float lightType = 0;
+    String lightTypeDescriptor = "perVertex";
+
     Boolean fill = true;
     Boolean rotate = true;
     Boolean strip = false;
@@ -179,10 +182,12 @@ public class Renderer extends AbstractRenderer{
         String projectionText = "P for toggle perspective";
         String surfaceTypeText = "K for toggle surface type";
         String stripText = "O for toggle IB strip";
+        String lightTypeText = "L for toggle light mode";
         textRenderer.addStr2D(3, 20, controlText);
         textRenderer.addStr2D(3, 40, functionChangeText);
         textRenderer.addStr2D(3, 60, String.format("%s (%b), %s (%b), %s (%b), %s (%b)", fillText, fill, rotateText, rotate, projectionText, persp, stripText, strip));
         textRenderer.addStr2D(3, 80, String.format("%s (%s %s)", surfaceTypeText, surfaceToggle, surfaceToggleDescriptor));
+        textRenderer.addStr2D(3, 100, String.format("%s (%s %s)", lightTypeText, lightType, lightTypeDescriptor));
         textRenderer.addStr2D(width-90, height-3, " (c) PGRF UHK");
         textRenderer.draw();
     }
@@ -258,6 +263,8 @@ public class Renderer extends AbstractRenderer{
             glUniformMatrix4fv(locProjection, false, projOrth.floatArray());
         }
 
+        glUniform1f(locLightType, lightType);
+
         glUniform3f(locLightPos, (float) viewLight.getPosition().getX(), (float) viewLight.getPosition().getY(), (float) viewLight.getPosition().getZ());
         glUniform3f(locViewPos, (float) view.getPosition().getX(), (float) view.getPosition().getY(), (float) view.getPosition().getZ());
 
@@ -321,6 +328,7 @@ public class Renderer extends AbstractRenderer{
         locObjectColor = glGetUniformLocation(shader,"objectColor");
         locMoveInTime = glGetUniformLocation(shader,"moveInTime");
         locLightBulb = glGetUniformLocation(shader,"lightBulb");
+        locLightType = glGetUniformLocation(shader, "lightType");
 
         locViewLight = glGetUniformLocation(shader, "viewLight");
         locLightPos = glGetUniformLocation(shader, "lightPos");
@@ -425,6 +433,15 @@ public class Renderer extends AbstractRenderer{
                         }else{
                             surfaceToggle = 0;
                             surfaceToggleDescriptor = "set color from CPU";
+                        }
+                        break;
+                    case GLFW_KEY_L:
+                        if(lightType == 0){
+                            lightType = 1;
+                            lightTypeDescriptor = "perPixel";
+                        }else{
+                            lightType = 0;
+                            lightTypeDescriptor = "perVertex";
                         }
                         break;
                 }
