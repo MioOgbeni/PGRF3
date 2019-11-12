@@ -10,6 +10,7 @@ out vec4 coordLight;
 
 out vec3 lightDir;
 out vec3 viewDir;
+out vec3 halfwayDir;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -138,6 +139,7 @@ void main() {
 	vec3 fragPos = vec3(model * vec4(position, 1.0));
 	lightDir = normalize(lightPos - fragPos);
 	viewDir = normalize(viewPos - fragPos);
+	halfwayDir = normalize(lightDir + viewDir);
 
 	coordLight = projection * viewLight * model * vec4(position, 1.0);
 	gl_Position = projection * view * model * vec4(position, 1.0);

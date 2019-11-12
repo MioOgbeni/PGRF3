@@ -6,6 +6,7 @@ in vec4 coordLight;
 
 in vec3 lightDir;
 in vec3 viewDir;
+in vec3 halfwayDir;
 
 uniform vec3 lightPos;
 uniform vec3 viewPos;
@@ -105,8 +106,11 @@ void main() {
         vec3 diffuse = diff * lightColor;
 
         //specular
-        vec3 reflectDir = reflect(-lightDir, vertNormal);
-        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 8);
+        //phong
+            //vec3 reflectDir = reflect(-lightDir, vertNormal);
+            //float spec = pow(max(dot(viewDir, reflectDir), 0.0), 8);
+        //blinn-phong
+        float spec = pow(max(dot(vertNormal, halfwayDir), 0.0), 8);
         vec3 specular = specularStrength * spec * lightColor;
 
         //shadow
