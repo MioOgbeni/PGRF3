@@ -38,8 +38,8 @@ vec3 funcSaddle(vec2 inPos) {
 
 vec3 funcSomething(vec2 inPos) {
     // something
-	float s = inPos.x * 8 - 1;
-	float t = inPos.y * 8 - 1;
+	float s = inPos.y * 8 - 1;
+	float t = inPos.x * 8 - 1;
 
 	return vec3(
 			(2 + t * cos(s/2) * cos(s)),
@@ -54,8 +54,8 @@ vec3 funcSphere(vec2 inPos) {
 	float r = 2;
 
 	return vec3(
-			cos(t) * cos(s) * r,
 			sin(t) * cos(s) * r,
+			cos(t) * cos(s) * r,
 			sin(s) * r);
 }
 

@@ -301,7 +301,7 @@ public class Renderer extends AbstractRenderer{
     }
 
     void createBuffers() {
-        GridFactory factory = new GridFactory(4,4);
+        GridFactory factory = new GridFactory(1000,1000);
         float[] vertexBufferData = factory.getVertexBuffer();
 
         int[] indexBufferData;
