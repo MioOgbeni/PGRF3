@@ -166,7 +166,7 @@ public class Renderer extends AbstractRenderer{
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         textureViewer.view(texture, -1, -1, 0.5);
-        textureViewer.view(renderTarget.getDepthTexture(), -1, -0.5, 0.5);
+        textureViewer.view(renderTarget.getDepthTexture(), -0.5, 0, -0.5);
 
         if(fill){
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -301,7 +301,7 @@ public class Renderer extends AbstractRenderer{
     }
 
     void createBuffers() {
-        GridFactory factory = new GridFactory(1000,1000);
+        GridFactory factory = new GridFactory(4,4);
         float[] vertexBufferData = factory.getVertexBuffer();
 
         int[] indexBufferData;
