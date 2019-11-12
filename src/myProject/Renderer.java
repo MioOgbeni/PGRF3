@@ -52,8 +52,8 @@ public class Renderer extends AbstractRenderer{
     float functionChanger = 0;
     float surfaceToggle = 0;
     String surfaceToggleDescriptor = "set color from CPU";
-    float lightType = 0;
-    String lightTypeDescriptor = "perVertex";
+    float lightType = 1;
+    String lightTypeDescriptor = "perPixel";
 
     Boolean fill = true;
     Boolean rotate = true;

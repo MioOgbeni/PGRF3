@@ -5,17 +5,20 @@ in vec2 inPosition; // input from the vertex buffer
 
 out vec3 vertPosition;
 out vec3 vertColor; // output from this shader to the next pipeline stage
-out vec3 vertColorNormal;
 out vec3 vertNormal;
 out vec4 coordLight;
 
-out vec3 fragPos;
+out vec3 lightDir;
+out vec3 viewDir;
 
 uniform mat4 projection;
 uniform mat4 view;
 uniform mat4 model;
 
 uniform mat4 viewLight;
+
+uniform vec3 lightPos;
+uniform vec3 viewPos;
 
 uniform float paramFunc;
 uniform float moveInTime;
@@ -130,9 +133,11 @@ void main() {
 	vec3 normal = transpose(inverse(mat3(model))) * paramNormal(inPosition);
 
 	vertColor =  (model * vec4(position,1.0)).xyz;
-	vertColorNormal = paramNormal(inPosition);
-	vertNormal = normal;
-	fragPos = vec3(model * vec4(position, 1.0));
+	vertNormal = normalize(normal);
+
+	vec3 fragPos = vec3(model * vec4(position, 1.0));
+	lightDir = normalize(lightPos - fragPos);
+	viewDir = normalize(viewPos - fragPos);
 
 	coordLight = projection * viewLight * model * vec4(position, 1.0);
 	gl_Position = projection * view * model * vec4(position, 1.0);
