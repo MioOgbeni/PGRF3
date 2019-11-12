@@ -61,10 +61,10 @@ vec3 funcSphere(vec2 inPos) {
 
 vec3 funcDeformedBall(vec2 vec)
 {
-	float s = vec.x * M_PI;
-	float t = vec.y * M_PI * 2;
+	float s = (0.5 - vec.x) * M_PI;
+	float t = (vec.y ) * M_PI * 2 ;
 
-	float rho = 1+ moveInTime *sin(6*s)*sin(5*t);
+	float rho = 1; //+ 0.3 *sin(6*s);//*sin(5*t);
 	float phi = t;
 	float theta = s;
 
@@ -131,14 +131,14 @@ vec3 paramNormal(vec2 inPos){
 void main() {
 	vertPosition = vec3(inPosition, 1.0);
 	vec3 position = paramPos(inPosition);
-	vec3 normal = transpose(inverse(mat3(model))) * paramNormal(inPosition);
+	vec3 normal = transpose(inverse(mat3(view * model))) * paramNormal(inPosition);
 
 	vertColor =  (model * vec4(position,1.0)).xyz;
 	vertNormal = normalize(normal);
 
-	vec3 fragPos = vec3(model * vec4(position, 1.0));
-	lightDir = normalize(lightPos - fragPos);
-	viewDir = normalize(viewPos - fragPos);
+	vec3 fragPos = vec3(view * model * vec4(position, 1.0));
+	lightDir = normalize((mat3(view) * lightPos) - fragPos);
+	viewDir = normalize((mat3(view) * viewPos) - fragPos);
 	halfwayDir = normalize(lightDir + viewDir);
 
 	coordLight = projection * viewLight * model * vec4(position, 1.0);

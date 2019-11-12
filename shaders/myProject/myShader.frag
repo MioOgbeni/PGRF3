@@ -13,6 +13,7 @@ uniform vec3 viewPos;
 
 uniform float surfaceType;
 uniform vec3 objectColor;
+uniform float ascii;
 
 uniform sampler2D mainTex;
 uniform sampler2D normTex;
@@ -48,6 +49,20 @@ float ShadowCalculation(vec4 coordLight)
     return shadow;
 }
 
+float character(int n, vec2 p)
+{
+    p = floor(p*vec2(4.0, -4.0) + 2.5);
+    if (clamp(p.x, 0.0, 4.0) == p.x)
+    {
+        if (clamp(p.y, 0.0, 4.0) == p.y)
+        {
+            int a = int(round(p.x) + 5.0 * round(p.y));
+            if (((n >> a) & 1) == 1) return 1.0;
+        }
+    }
+    return 0.0;
+}
+
 void main() {
     if(lightType == 0) {
         outColor = vec4(1.0);
@@ -71,27 +86,6 @@ void main() {
             //  barva solid z cpu
             color = objectColor/255;
         }
-
-        /*
-        vec3 normal = normalize(vertNormal);
-        vec3 lightColor = vec3(1.0);
-        // ambient
-        vec3 ambient = 0.2 * color;
-        // diffuse
-        vec3 lightDir = normalize(lightPos - fragPos);
-        float diff = max(dot(lightDir, normal), 0.0);
-        vec3 diffuse = diff * lightColor;
-        // specular
-        vec3 viewDir = normalize(viewPos - fragPos);
-        float spec = 0.0;
-        vec3 halfwayDir = normalize(lightDir + viewDir);
-        spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);
-        vec3 specular = spec * lightColor;
-        // calculate shadow
-        float shadow = ShadowCalculation(coordLight);
-        // mix light, shadow and color
-        vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
-        */
 
         //light parameters declaration
         float ambientStrength = 0.2;
@@ -117,15 +111,37 @@ void main() {
         float shadow = ShadowCalculation(coordLight);
 
         //final mix
-        vec3 lighting = (1.0 - shadow) * (ambient + diffuse + specular) * color;
+        vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
 
+        int n;
+        vec2 p;
+        if(ascii == 1.0){
+            float gray = 0.3 * lighting.r + 0.59 * lighting.g + 0.11 * lighting.b;
+
+            n =  4096;                // .
+            if (gray > 0.2) n = 65600;    // :
+            if (gray > 0.3) n = 332772;   // *
+            if (gray > 0.4) n = 15255086; // o
+            if (gray > 0.5) n = 23385164; // &
+            if (gray > 0.6) n = 15252014; // 8
+            if (gray > 0.7) n = 13199452; // @
+            if (gray > 0.8) n = 11512810; // #
+
+            p = mod(gl_FragCoord.xy/4.0, 2.0) - vec2(1.0);
+
+            lighting = lighting * character(n, p);
+        }
 
         outColor = vec4(lighting, 1.0);
 
-
         //light bulb don't cast shadow
         if(lightBulb){
-            outColor = vec4(objectColor, 1.0);
+
+            if(ascii == 1.0){
+                outColor = vec4(objectColor * character(n, p), 1.0);
+            }else{
+                outColor = vec4(objectColor, 1.0);
+            }
         }
     }
 }

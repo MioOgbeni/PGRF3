@@ -39,7 +39,7 @@ public class Renderer extends AbstractRenderer{
     OGLBuffers buffers;
 
     // All shits for shaders
-    int shaderProgram, locProjection, locView, locModel, paramFunc, surfaceType, locObjectColor, locMoveInTime, locLightPos, locViewPos, locLightBulb, locLightType;
+    int shaderProgram, locProjection, locView, locModel, paramFunc, surfaceType, locObjectColor, locMoveInTime, locLightPos, locViewPos, locLightBulb, locLightType, locAscii;
 
     // All shits for light shaders
     int shaderProgramLight, locMoveInTimeLight, locViewLight, locModelLight, locProjectionLight, paramFuncLight;
@@ -58,6 +58,7 @@ public class Renderer extends AbstractRenderer{
     Boolean fill = true;
     Boolean rotate = true;
     Boolean strip = false;
+    float ascii = 0;
 
     Mat4RotX rotateX = new Mat4RotX(0);
     Mat4RotY rotateY = new Mat4RotY(0);
@@ -183,11 +184,13 @@ public class Renderer extends AbstractRenderer{
         String surfaceTypeText = "K for toggle surface type";
         String stripText = "O for toggle IB strip";
         String lightTypeText = "L for toggle light mode";
+        String asciiText = "M for toggle ascii rendering";
         textRenderer.addStr2D(3, 20, controlText);
         textRenderer.addStr2D(3, 40, functionChangeText);
         textRenderer.addStr2D(3, 60, String.format("%s (%b), %s (%b), %s (%b), %s (%b)", fillText, fill, rotateText, rotate, projectionText, persp, stripText, strip));
         textRenderer.addStr2D(3, 80, String.format("%s (%s %s)", surfaceTypeText, surfaceToggle, surfaceToggleDescriptor));
         textRenderer.addStr2D(3, 100, String.format("%s (%s %s)", lightTypeText, lightType, lightTypeDescriptor));
+        textRenderer.addStr2D(3, 120, String.format("%s (%s %s)", asciiText, ascii, ascii!=0.0f));
         textRenderer.addStr2D(width-90, height-3, " (c) PGRF UHK");
         textRenderer.draw();
     }
@@ -248,6 +251,8 @@ public class Renderer extends AbstractRenderer{
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clear buffers
 
         renderTarget.getDepthTexture().bind(shaderProgram, "shadowMap", 3); //bind light buffer like a viewer texture
+
+        glUniform1f(locAscii, ascii);
 
         //setup scene filling
         if(fill){
@@ -329,6 +334,7 @@ public class Renderer extends AbstractRenderer{
         locMoveInTime = glGetUniformLocation(shader,"moveInTime");
         locLightBulb = glGetUniformLocation(shader,"lightBulb");
         locLightType = glGetUniformLocation(shader, "lightType");
+        locAscii = glGetUniformLocation(shader, "ascii");
 
         locViewLight = glGetUniformLocation(shader, "viewLight");
         locLightPos = glGetUniformLocation(shader, "lightPos");
@@ -442,6 +448,13 @@ public class Renderer extends AbstractRenderer{
                         }else{
                             lightType = 0;
                             lightTypeDescriptor = "perVertex";
+                        }
+                        break;
+                    case GLFW_KEY_M:
+                        if(ascii == 0){
+                            ascii = 1;
+                        }else{
+                            ascii = 0;
                         }
                         break;
                 }
