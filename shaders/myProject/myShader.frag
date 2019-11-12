@@ -110,7 +110,7 @@ void main() {
             //vec3 reflectDir = reflect(-lightDir, vertNormal);
             //float spec = pow(max(dot(viewDir, reflectDir), 0.0), 8);
         //blinn-phong
-        float spec = pow(max(dot(vertNormal, halfwayDir), 0.0), 8);
+        float spec = pow(max(dot(vertNormal, halfwayDir), 0.0), 64);
         vec3 specular = specularStrength * spec * lightColor;
 
         //shadow

@@ -68,8 +68,8 @@ public class Renderer extends AbstractRenderer{
     Mat4Transl lightPosition;
     Camera viewLight = new Camera();
 
-    Mat4 projPers = new Mat4PerspRH(Math.PI / 3, LwjglWindow.HEIGHT/(float)LwjglWindow.WIDTH, 2, 30);
-    Mat4 projOrth = new Mat4OrthoRH( 10, 10, 2, 30);
+    Mat4 projPers = new Mat4PerspRH(Math.PI / 3, LwjglWindow.HEIGHT/(float)LwjglWindow.WIDTH, 2, 60);
+    Mat4 projOrth = new Mat4OrthoRH( 10, 10, 2, 60);
     Boolean persp = true;
 
 
@@ -301,7 +301,7 @@ public class Renderer extends AbstractRenderer{
     }
 
     void createBuffers() {
-        GridFactory factory = new GridFactory(100,100);
+        GridFactory factory = new GridFactory(1000,1000);
         float[] vertexBufferData = factory.getVertexBuffer();
 
         int[] indexBufferData;
@@ -457,9 +457,9 @@ public class Renderer extends AbstractRenderer{
                 width = w;
                 height = h;
                 if(persp){
-                    projPers = new Mat4PerspRH(Math.PI / 3, height / (double) width, 2, 30);
+                    projPers = new Mat4PerspRH(Math.PI / 3, height / (double) width, 2, 60);
                 }else{
-                    projOrth = new Mat4OrthoRH( 10, 10, 2, 30);
+                    projOrth = new Mat4OrthoRH( 10, 10, 2, 60);
                 }
 
                 if (textRenderer != null)
