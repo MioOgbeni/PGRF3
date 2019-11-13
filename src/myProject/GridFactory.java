@@ -19,11 +19,12 @@ public class GridFactory {
     private void createVB(int xSize, int ySize) {
         vertexBuffer = new float[2 * ySize * xSize];
         int index = 0;
-        for (int y = 0; y < ySize; y++)
+        for (int y = 0; y < ySize; y++) {
             for (int x = 0; x < xSize; x++) {
-                vertexBuffer[index ++] = (float) x / (xSize - 1);
-                vertexBuffer[index ++] = (float) y / (ySize - 1);
+                vertexBuffer[index++] = (float) x / (xSize - 1);
+                vertexBuffer[index++] = (float) y / (ySize - 1);
             }
+        }
     }
 
     private void createIBList(int xSize, int ySize){
@@ -44,35 +45,21 @@ public class GridFactory {
 
     private int[] createIBStrip(int xSize, int ySize)
     {
-        int naSudej = ySize % 2 + ySize;
-        indexBufferStrip = new int[(((ySize * 4) + 2) * (naSudej / 2) - (ySize * 2 + 2)) - (ySize % 2 * (ySize * 2))];
-        int index2 = 0;
-        boolean smerGenerovani = true;
-        for (int j = 0; j < ySize - 1; j++)
+        indexBufferStrip = new int[(xSize) * (ySize) + (xSize * (ySize-2)) + (2*(ySize-1))];
+        int index = 0;
+        for (int j = 0; j < ySize - 1; j+=1)
         {
-            int pom = 0;
-
-            if(smerGenerovani)
+            int row = 0;
+            for (int i = 0; i <= xSize - 1; i+=1)
             {
-                for (int i = 0; i < xSize; i++)
-                {
-                    indexBufferStrip[index2++] = (j * xSize) + i;
-                    indexBufferStrip[index2++] = ((j + 1) * xSize) + i;
-                    pom = i;
-                }
-                if (j < (ySize - 2))
-                {
-                    indexBufferStrip[index2++] = ((j + 1) * xSize) + (pom);
-                    indexBufferStrip[index2++] = ((j + 1) * xSize) + (pom);
-                }
-            } else {
-                for (int i = (xSize - 1); i > -1; i --)
-                {
-                    indexBufferStrip[index2++] = ((j + 1) * xSize) + i;
-                    indexBufferStrip[index2++] = (j * xSize) + i;
-                }
+                indexBufferStrip[index++] = j * xSize + i;
+                indexBufferStrip[index++] = (j + 1) * xSize + i;
+
+                row = i;
             }
-            smerGenerovani = !smerGenerovani;
+            indexBufferStrip[index++] = (j + 1) * xSize + row;
+            indexBufferStrip[index++] = (j + 1) * xSize;
+
         }
 
         return indexBufferStrip;

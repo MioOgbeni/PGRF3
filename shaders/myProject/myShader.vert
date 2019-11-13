@@ -59,20 +59,16 @@ vec3 funcSphere(vec2 inPos) {
 			sin(s) * r);
 }
 
-vec3 funcDeformedBall(vec2 vec)
+vec3 funcDeformedBall(vec2 inPos)
 {
-	float s = (0.5 - vec.x) * M_PI;
-	float t = (vec.y ) * M_PI * 2 ;
+	float s = M_PI * 0.5 - M_PI * inPos.y;
+	float t = 2 * M_PI * inPos.x;
+	float r = 2 + moveInTime *sin(6*s)*sin(5*t);
 
-	float rho = 1; //+ 0.3 *sin(6*s);//*sin(5*t);
-	float phi = t;
-	float theta = s;
-
-	float x = rho * sin(phi) * cos(theta);
-	float y = rho * sin(phi) * sin(theta);
-	float z = rho * cos(phi);
-
-	return vec3(x, y, z);
+	return vec3(
+	sin(t) * cos(s) * r,
+	cos(t) * cos(s) * r,
+	sin(s) * r);
 }
 
 vec3 funcSombrero(vec2 inPos) {

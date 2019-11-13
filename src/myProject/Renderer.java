@@ -60,6 +60,8 @@ public class Renderer extends AbstractRenderer{
     Boolean strip = false;
     float ascii = 0;
 
+    int stripOrNot = GL_TRIANGLES;
+
     Mat4RotX rotateX = new Mat4RotX(0);
     Mat4RotY rotateY = new Mat4RotY(0);
     Mat4RotZ rotateZ = new Mat4RotZ(rotateValue);
@@ -140,7 +142,7 @@ public class Renderer extends AbstractRenderer{
 
         if(moveInTimeUp){
             moveInTime = moveInTime + 0.01f;
-            if(moveInTime >= 3.0f){
+            if(moveInTime >= 0.6f){
                 moveInTimeUp = false;
             }
         }else {
@@ -229,14 +231,14 @@ public class Renderer extends AbstractRenderer{
 
         glUniform1f(paramFuncLight, functionChanger); //his shape
 
-        buffers.draw(GL_TRIANGLES, shaderProgramLight); //draw him
+        buffers.draw(stripOrNot, shaderProgramLight); //draw him
 
         //----------------------------------------------------Setup base plane object
         glUniform1f(paramFuncLight, 10); //it fill be plane
 
         glUniformMatrix4fv(locModelLight, false, new Mat4Scale(10).mul(new Mat4Transl(-5,-5,-2)).floatArray()); //his position and scale
 
-        buffers.draw(GL_TRIANGLES, shaderProgramLight); //draw him
+        buffers.draw(stripOrNot, shaderProgramLight); //draw him
     }
 
     public void renderFromViewer(){
@@ -286,14 +288,14 @@ public class Renderer extends AbstractRenderer{
         glUniform1f(surfaceType, surfaceToggle); //his color
         glUniform3f(locObjectColor, objectColor.getRed(), objectColor.getGreen(), objectColor.getBlue()); //if color is <1 or 4< use this color from cpu
 
-        buffers.draw(GL_TRIANGLES, shaderProgram); //draw him
+        buffers.draw(stripOrNot, shaderProgram); //draw him
 
         //----------------------------------------------------Setup base plane object
         glUniform1f(paramFunc, 10); //his shape
         glUniform1f(surfaceType, 10); //his color
         glUniform3f(locObjectColor, objectColor2.getRed(), objectColor2.getGreen(), objectColor2.getBlue()); //if color is <1 or 4< use this color from cpu
         glUniformMatrix4fv(locModel, false, new Mat4Scale(10).mul(new Mat4Transl(-5,-5,-2)).floatArray()); //his position and scale
-        buffers.draw(GL_TRIANGLES, shaderProgram); //draw him
+        buffers.draw(stripOrNot, shaderProgram); //draw him
 
         //----------------------------------------------------Setup light bulb
         glUniform1i(locLightBulb, 1);
@@ -301,7 +303,7 @@ public class Renderer extends AbstractRenderer{
         glUniform1f(surfaceType, 10); //his color
         glUniform3f(locObjectColor, 255, 255, 0); //if color is <1 or 4< use this color from cpu
         glUniformMatrix4fv(locModel, false, new Mat4Scale(0.1).mul(lightPosition).floatArray()); //his position and scale
-        buffers.draw(GL_TRIANGLES, shaderProgram); //draw him
+        buffers.draw(stripOrNot, shaderProgram); //draw him
         glUniform1i(locLightBulb, 0);
     }
 
@@ -419,8 +421,12 @@ public class Renderer extends AbstractRenderer{
                     case GLFW_KEY_O:
                         if(strip){
                             strip = false;
+                            stripOrNot = GL_TRIANGLES;
+                            createBuffers();
                         }else{
                             strip = true;
+                            stripOrNot = GL_TRIANGLE_STRIP;
+                            createBuffers();
                         }
                         break;
                     case GLFW_KEY_K:
