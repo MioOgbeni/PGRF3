@@ -11,6 +11,12 @@ out vec4 coordLight;
 out vec3 lightDir;
 out vec3 viewDir;
 out vec3 halfwayDir;
+out float lightDistance;
+
+out vec3 outSpotDir;
+out vec3 spotPos;
+
+out vec3 intensity;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -20,6 +26,7 @@ uniform mat4 viewLight;
 
 uniform vec3 lightPos;
 uniform vec3 viewPos;
+uniform vec3 spotDir;
 
 uniform float paramFunc;
 uniform float moveInTime;
@@ -27,6 +34,23 @@ uniform float moveInTime;
 uniform float lightType;
 
 const float delta = 0.001;
+
+uniform float surfaceType;
+uniform vec3 objectColor;
+uniform bool ascii;
+uniform bool moon;
+
+uniform bool lightBulb;
+
+uniform sampler2D mainTex;
+uniform sampler2D mainHighTex;
+uniform sampler2D moonTex;
+uniform sampler2D moonHighTex;
+uniform sampler2D shadowMap;
+
+const float constantAttenuation = 1.0;
+const float linearAttenuation = 0.14;
+const float quadraticAttenuation = 0.07;
 
 // funkce
 vec3 funcSaddle(vec2 inPos) {
@@ -124,6 +148,29 @@ vec3 paramNormal(vec2 inPos){
 	return cross(tx,ty);
 }
 
+float ShadowCalculation(vec4 coordLight)
+{
+    vec3 projCoords = coordLight.xyz / coordLight.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+    float bias = 0.005;
+
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    for(int x = -3; x <= 3; ++x)
+    {
+        for(int y = -3; y <= 3; ++y)
+        {
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+        }
+    }
+    shadow /= 49.0;
+
+    return shadow;
+}
+
 void main() {
 	vertPosition = vec3(inPosition, 1.0);
 	vec3 position = paramPos(inPosition);
@@ -136,7 +183,81 @@ void main() {
 	lightDir = normalize((mat3(view) * lightPos) - fragPos);
 	viewDir = normalize((mat3(view) * viewPos) - fragPos);
 	halfwayDir = normalize(lightDir + viewDir);
+    lightDistance = length(lightDir);
+
+    outSpotDir = (mat3(model) * spotDir);
+    spotPos = normalize((mat3(model) * lightPos) - fragPos);
 
 	coordLight = projection * viewLight * model * vec4(position, 1.0);
 	gl_Position = projection * view * model * vec4(position, 1.0);
+
+    if(lightType == 1){
+        vec3 color;
+
+        if (surfaceType == 1){
+            // barva textura
+			if(!moon){
+				normal = texture2D(mainHighTex, vertPosition.xy).xyz;
+				normal *= 2;
+				normal -= 1;
+				color =  texture(mainTex, vertPosition.xy).rgb;
+			}else{
+				normal = texture2D(moonHighTex, vertPosition.xy).xyz;
+				normal *= 2;
+				normal -= 1;
+				color =  texture(moonTex, vertPosition.xy).rgb;
+			}
+        } else if (surfaceType == 2){
+            // barva normála
+            float cosAlpha = dot(normalize(vertNormal), normalize(lightDir));
+            color =  vec3(cosAlpha);
+        } else if (surfaceType == 3){
+            // barva xyz
+            color = vertColor;
+        } else if (surfaceType == 4){
+            // barva hloubka
+            color = (projection * view * model * vec4(position, 1.0)).zzz;
+        }else{
+            //  barva solid z cpu
+            color = objectColor/255;
+        }
+
+        //light parameters declaration
+        float ambientStrength = 0.2;
+        float specularStrength = 0.5;
+        vec3 lightColor = vec3(1.0);
+
+        //ambient
+        vec3 ambient = ambientStrength * lightColor;
+
+        //difuse
+        float diff = max(dot(normalize(vertNormal), normalize(lightDir)), 0.0);
+        vec3 diffuse = diff * lightColor;
+
+        //specular
+        //phong
+        //vec3 reflectDir = reflect(-lightDir, vertNormal);
+        //float spec = pow(max(dot(viewDir, reflectDir), 0.0), 8);
+        //blinn-phong
+        float spec = pow(max(dot(normalize(vertNormal), normalize(halfwayDir)), 0.0), 64);
+        vec3 specular = specularStrength * spec * lightColor;
+
+        //shadow
+        float shadow = ShadowCalculation(coordLight);
+
+        //attenuation
+        float attenuation = 1.0 / (constantAttenuation + linearAttenuation * lightDistance + quadraticAttenuation * (lightDistance * lightDistance));
+
+        //final mix
+        ambient  *= attenuation;
+        diffuse  *= attenuation;
+        specular *= attenuation;
+
+        intensity = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
+
+        //light bulb don't cast shadow
+        if(lightBulb){
+            intensity = objectColor;
+        }
+    }
 }

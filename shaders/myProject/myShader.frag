@@ -7,17 +7,28 @@ in vec4 coordLight;
 in vec3 lightDir;
 in vec3 viewDir;
 in vec3 halfwayDir;
+in float lightDistance;
+
+in vec3 outSpotDir;
+in vec3 spotPos;
+
+in vec3 intensity;
 
 uniform vec3 lightPos;
 uniform vec3 viewPos;
 
 uniform float surfaceType;
 uniform vec3 objectColor;
-uniform float ascii;
+uniform bool ascii;
+uniform bool moon;
+
+uniform float cutOff;
+uniform vec3 spotDir;
 
 uniform sampler2D mainTex;
-uniform sampler2D normTex;
-uniform sampler2D heightTex;
+uniform sampler2D mainHighTex;
+uniform sampler2D moonTex;
+uniform sampler2D moonHighTex;
 uniform sampler2D shadowMap;
 
 uniform bool lightBulb;
@@ -25,6 +36,10 @@ uniform bool lightBulb;
 uniform float lightType;
 
 out vec4 outColor; // output from the fragment shader
+
+const float constantAttenuation = 1.0;
+const float linearAttenuation = 0.14;
+const float quadraticAttenuation = 0.07;
 
 float ShadowCalculation(vec4 coordLight)
 {
@@ -64,17 +79,29 @@ float character(int n, vec2 p)
 }
 
 void main() {
-    if(lightType == 0) {
-        outColor = vec4(1.0);
+    vec3 normal = vertNormal;
+    if(lightType == 1) {
+        outColor = vec4(intensity, 1.0);
+
     }else{
         vec3 color;
 
         if (surfaceType == 1){
             // barva textura
-            color =  texture(mainTex, vertPosition.xy).rgb;
+            if(!moon){
+                normal = texture2D(mainHighTex, vertPosition.xy).xyz;
+                normal *= 2;
+                normal -= 1;
+                color =  texture(mainTex, vertPosition.xy).rgb;
+            }else{
+                normal = texture2D(moonHighTex, vertPosition.xy).xyz;
+                normal *= 2;
+                normal -= 1;
+                color =  texture(moonTex, vertPosition.xy).rgb;
+            }
         } else if (surfaceType == 2){
             // barva normála
-            float cosAlpha = dot(vertNormal, normalize(lightPos));
+            float cosAlpha = dot(normalize(normal), normalize(lightDir));
             color =  vec3(cosAlpha);
         } else if (surfaceType == 3){
             // barva xyz
@@ -96,7 +123,7 @@ void main() {
         vec3 ambient = ambientStrength * lightColor;
 
         //difuse
-        float diff = max(dot(vertNormal, lightDir), 0.0);
+        float diff = max(dot(normalize(normal), normalize(lightDir)), 0.0);
         vec3 diffuse = diff * lightColor;
 
         //specular
@@ -104,18 +131,32 @@ void main() {
             //vec3 reflectDir = reflect(-lightDir, vertNormal);
             //float spec = pow(max(dot(viewDir, reflectDir), 0.0), 8);
         //blinn-phong
-        float spec = pow(max(dot(vertNormal, halfwayDir), 0.0), 64);
+        float spec = pow(max(dot(normalize(normal), normalize(halfwayDir)), 0.0), 64);
         vec3 specular = specularStrength * spec * lightColor;
 
         //shadow
         float shadow = ShadowCalculation(coordLight);
 
-        //final mix
-        vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
+        //attenuation
+        float attenuation = 1.0 / (constantAttenuation + linearAttenuation * lightDistance + quadraticAttenuation * (lightDistance * lightDistance));
 
+        //final mix
+        ambient  *= attenuation;
+        diffuse  *= attenuation;
+        specular *= attenuation;
+
+        vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
+/*
+        float theta = dot(outSpotDir, normalize(-spotDir));
+        if (theta > cos(cutOff)) {
+            lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
+        }else{
+            lighting = vec3(1.0);
+        }
+*/
         int n;
         vec2 p;
-        if(ascii == 1.0){
+        if(ascii){
             float gray = 0.3 * lighting.r + 0.59 * lighting.g + 0.11 * lighting.b;
 
             n =  4096;                // .
@@ -137,7 +178,7 @@ void main() {
         //light bulb don't cast shadow
         if(lightBulb){
 
-            if(ascii == 1.0){
+            if(ascii){
                 outColor = vec4(objectColor * character(n, p), 1.0);
             }else{
                 outColor = vec4(objectColor, 1.0);
