@@ -16,7 +16,7 @@ out float lightDistance;
 out vec3 outSpotDir;
 out vec3 spotPos;
 
-out vec3 intensity;
+out vec3 verLighting;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -253,11 +253,11 @@ void main() {
         diffuse  *= attenuation;
         specular *= attenuation;
 
-        intensity = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
+        verLighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
 
         //light bulb don't cast shadow
         if(lightBulb){
-            intensity = objectColor;
+            verLighting = objectColor;
         }
     }
 }

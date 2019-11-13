@@ -12,7 +12,7 @@ in float lightDistance;
 in vec3 outSpotDir;
 in vec3 spotPos;
 
-in vec3 intensity;
+in vec3 verLighting;
 
 uniform vec3 lightPos;
 uniform vec3 viewPos;
@@ -81,7 +81,7 @@ float character(int n, vec2 p)
 void main() {
     vec3 normal = vertNormal;
     if(lightType == 1) {
-        outColor = vec4(intensity, 1.0);
+        outColor = vec4(verLighting, 1.0);
 
     }else{
         vec3 color;
