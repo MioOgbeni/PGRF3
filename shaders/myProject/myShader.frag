@@ -1,4 +1,8 @@
 #version 150
+#define M_PI 3.14159265359
+
+in vec2 vertTexturePosition;
+
 in vec3 vertColor; // input from the previous pipeline stage
 in vec3 vertNormal;
 in vec3 vertPosition;
@@ -10,7 +14,6 @@ in vec3 halfwayDir;
 in float lightDistance;
 
 in vec3 outSpotDir;
-in vec3 spotPos;
 
 in vec3 verLighting;
 
@@ -21,8 +24,10 @@ uniform float surfaceType;
 uniform vec3 objectColor;
 uniform bool ascii;
 uniform bool moon;
+uniform bool spotlight;
+uniform bool coordsInTexture;
+uniform bool lightBulb;
 
-uniform float cutOff;
 uniform vec3 spotDir;
 
 uniform sampler2D mainTex;
@@ -30,8 +35,6 @@ uniform sampler2D mainHighTex;
 uniform sampler2D moonTex;
 uniform sampler2D moonHighTex;
 uniform sampler2D shadowMap;
-
-uniform bool lightBulb;
 
 uniform float lightType;
 
@@ -43,22 +46,31 @@ const float quadraticAttenuation = 0.07;
 
 float ShadowCalculation(vec4 coordLight)
 {
+    //dehomog
     vec3 projCoords = coordLight.xyz / coordLight.w;
+    //to range [0 1]
     projCoords = projCoords * 0.5 + 0.5;
-    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    //take a depth of fragment
     float currentDepth = projCoords.z;
+    //set bias
     float bias = 0.005;
 
-    float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    float shadow = 0.0;
+
+    //go through surrounding pixels
     for(int x = -3; x <= 3; ++x)
     {
         for(int y = -3; y <= 3; ++y)
         {
-            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+            //calculate shadow for surrounding pixels
+            float xySubFragDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+            if(currentDepth - bias > xySubFragDepth){
+                shadow += 1.0;
+            }
         }
     }
+    //smooth shadow
     shadow /= 49.0;
 
     return shadow;
@@ -89,15 +101,41 @@ void main() {
         if (surfaceType == 1){
             // barva textura
             if(!moon){
-                normal = texture2D(mainHighTex, vertPosition.xy).xyz;
-                normal *= 2;
-                normal -= 1;
-                color =  texture(mainTex, vertPosition.xy).rgb;
+                if(coordsInTexture){
+                    float v=acos(vertPosition.z/1.0)/M_PI;
+                    float u=atan(vertPosition.x/vertPosition.y)/2/M_PI;
+                    if (sign(vertPosition.y)<=0) u+=0.5;
+
+                    vec2 coordsTexture = vec2(u, v);
+
+                    normal = texture2D(mainHighTex, coordsTexture.xy).xyz;
+                    normal *= 2;
+                    normal -= 1;
+                    color =  texture(mainTex, coordsTexture.xy).rgb;
+                }else{
+                    normal = texture2D(mainHighTex, vertPosition.xy).xyz;
+                    normal *= 2;
+                    normal -= 1;
+                    color =  texture(mainTex, vertPosition.xy).rgb;
+                }
             }else{
-                normal = texture2D(moonHighTex, vertPosition.xy).xyz;
-                normal *= 2;
-                normal -= 1;
-                color =  texture(moonTex, vertPosition.xy).rgb;
+                if(coordsInTexture){
+                    float v=acos(vertPosition.z/1.0)/M_PI;
+                    float u=atan(vertPosition.x/vertPosition.y)/2/M_PI;
+                    if (sign(vertPosition.y)<=0) u+=0.5;
+
+                    vec2 coordsTexture = vec2(u, v);
+
+                    normal = texture2D(moonHighTex, coordsTexture.xy).xyz;
+                    normal *= 2;
+                    normal -= 1;
+                    color =  texture(moonTex, coordsTexture.xy).rgb;
+                }else{
+                    normal = texture2D(moonHighTex, vertPosition.xy).xyz;
+                    normal *= 2;
+                    normal -= 1;
+                    color =  texture(moonTex, vertPosition.xy).rgb;
+                }
             }
         } else if (surfaceType == 2){
             // barva normála
@@ -137,6 +175,15 @@ void main() {
         //shadow
         float shadow = ShadowCalculation(coordLight);
 
+        //spotlight
+        if(spotlight){
+            float theta = dot(outSpotDir, normalize(-spotDir));
+            float epsilon   = 1.0 - 0.95;
+            float intensity = clamp((theta - 0.95) / epsilon, 0.0, 1.0);
+            diffuse  *= intensity;
+            specular *= intensity;
+        }
+
         //attenuation
         float attenuation = 1.0 / (constantAttenuation + linearAttenuation * lightDistance + quadraticAttenuation * (lightDistance * lightDistance));
 
@@ -144,16 +191,8 @@ void main() {
         ambient  *= attenuation;
         diffuse  *= attenuation;
         specular *= attenuation;
-
         vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
-/*
-        float theta = dot(outSpotDir, normalize(-spotDir));
-        if (theta > cos(cutOff)) {
-            lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
-        }else{
-            lighting = vec3(1.0);
-        }
-*/
+
         int n;
         vec2 p;
         if(ascii){
@@ -179,9 +218,9 @@ void main() {
         if(lightBulb){
 
             if(ascii){
-                outColor = vec4(objectColor * character(n, p), 1.0);
+                outColor = vec4(objectColor/255 * character(n, p), 1.0);
             }else{
-                outColor = vec4(objectColor, 1.0);
+                outColor = vec4(objectColor/255, 1.0);
             }
         }
     }

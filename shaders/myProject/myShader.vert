@@ -1,7 +1,10 @@
 #version 150
 #define M_PI 3.14159265359
 
-in vec2 inPosition; // input from the vertex buffer
+in vec2 inPosition; // input position from the vertex buffer
+in vec2 inTexturePosition; // input texture coord from the vertex buffer
+
+out vec2 vertTexturePosition;
 
 out vec3 vertPosition;
 out vec3 vertColor; // output from this shader to the next pipeline stage
@@ -14,7 +17,6 @@ out vec3 halfwayDir;
 out float lightDistance;
 
 out vec3 outSpotDir;
-out vec3 spotPos;
 
 out vec3 verLighting;
 
@@ -39,7 +41,8 @@ uniform float surfaceType;
 uniform vec3 objectColor;
 uniform bool ascii;
 uniform bool moon;
-
+uniform bool spotlight;
+uniform bool coordsInTexture;
 uniform bool lightBulb;
 
 uniform sampler2D mainTex;
@@ -119,7 +122,6 @@ vec3 funcGlass(vec2 inPos){
 		t);
 }
 
-
 vec3 paramPos(vec2 inPosition){
 	vec3 position;
 
@@ -150,22 +152,31 @@ vec3 paramNormal(vec2 inPos){
 
 float ShadowCalculation(vec4 coordLight)
 {
+	//dehomog
     vec3 projCoords = coordLight.xyz / coordLight.w;
+	//to range [0 1]
     projCoords = projCoords * 0.5 + 0.5;
-    float closestDepth = texture(shadowMap, projCoords.xy).r;
+	//take a depth of fragment
     float currentDepth = projCoords.z;
+	//set bias
     float bias = 0.005;
 
-    float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+	float shadow = 0.0;
+
+	//go through surrounding pixels
     for(int x = -3; x <= 3; ++x)
     {
         for(int y = -3; y <= 3; ++y)
         {
-            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+			//calculate shadow for surrounding pixels
+            float xySubFragDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+			if(currentDepth - bias > xySubFragDepth){
+				shadow += 1.0;
+			}
         }
     }
+	//smooth shadow
     shadow /= 49.0;
 
     return shadow;
@@ -185,8 +196,7 @@ void main() {
 	halfwayDir = normalize(lightDir + viewDir);
     lightDistance = length(lightDir);
 
-    outSpotDir = (mat3(model) * spotDir);
-    spotPos = normalize((mat3(model) * lightPos) - fragPos);
+    outSpotDir = normalize(lightPos - vec3(model * vec4(position, 1.0)));
 
 	coordLight = projection * viewLight * model * vec4(position, 1.0);
 	gl_Position = projection * view * model * vec4(position, 1.0);
@@ -197,15 +207,44 @@ void main() {
         if (surfaceType == 1){
             // barva textura
 			if(!moon){
-				normal = texture2D(mainHighTex, vertPosition.xy).xyz;
-				normal *= 2;
-				normal -= 1;
-				color =  texture(mainTex, vertPosition.xy).rgb;
+				if(coordsInTexture){
+
+					float v=acos(vertPosition.z/1.0)/M_PI;
+					float u=atan(vertPosition.x/vertPosition.y)/2/M_PI;
+					if (sign(vertPosition.y)<=0) u+=0.5;
+
+					vec2 coordsTexture = vec2(u, v);
+
+					normal = texture2D(mainHighTex, coordsTexture.xy).xyz;
+					normal *= 2;
+					normal -= 1;
+					color =  texture(mainTex, coordsTexture.xy).rgb;
+				}else{
+					normal = texture2D(mainHighTex, vertPosition.xy).xyz;
+					normal *= 2;
+					normal -= 1;
+					color =  texture(mainTex, vertPosition.xy).rgb;
+				}
 			}else{
-				normal = texture2D(moonHighTex, vertPosition.xy).xyz;
-				normal *= 2;
-				normal -= 1;
-				color =  texture(moonTex, vertPosition.xy).rgb;
+				if(coordsInTexture){
+
+					float v=acos(vertPosition.z/1.0)/M_PI;
+					float u=atan(vertPosition.x/vertPosition.y)/2/M_PI;
+					if (sign(vertPosition.y)<=0) u+=0.5;
+
+					vec2 coordsTexture = vec2(u, v);
+
+
+					normal = texture2D(moonHighTex, coordsTexture.xy).xyz;
+					normal *= 2;
+					normal -= 1;
+					color =  texture(moonTex, coordsTexture.xy).rgb;
+				}else{
+					normal = texture2D(moonHighTex, vertPosition.xy).xyz;
+					normal *= 2;
+					normal -= 1;
+					color =  texture(moonTex, vertPosition.xy).rgb;
+				}
 			}
         } else if (surfaceType == 2){
             // barva normála
@@ -236,14 +275,23 @@ void main() {
 
         //specular
         //phong
-        //vec3 reflectDir = reflect(-lightDir, vertNormal);
-        //float spec = pow(max(dot(viewDir, reflectDir), 0.0), 8);
+        	//vec3 reflectDir = reflect(-lightDir, vertNormal);
+        	//float spec = pow(max(dot(viewDir, reflectDir), 0.0), 8);
         //blinn-phong
         float spec = pow(max(dot(normalize(vertNormal), normalize(halfwayDir)), 0.0), 64);
         vec3 specular = specularStrength * spec * lightColor;
 
         //shadow
         float shadow = ShadowCalculation(coordLight);
+
+		//spotlight
+		if(spotlight){
+			float theta = dot(outSpotDir, normalize(-spotDir));
+			float epsilon   = 1.0 - 0.95;
+			float intensity = clamp((theta - 0.95) / epsilon, 0.0, 1.0);
+			diffuse  *= intensity;
+			specular *= intensity;
+		}
 
         //attenuation
         float attenuation = 1.0 / (constantAttenuation + linearAttenuation * lightDistance + quadraticAttenuation * (lightDistance * lightDistance));
@@ -252,12 +300,11 @@ void main() {
         ambient  *= attenuation;
         diffuse  *= attenuation;
         specular *= attenuation;
-
-        verLighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
+		verLighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
 
         //light bulb don't cast shadow
         if(lightBulb){
-            verLighting = objectColor;
+            verLighting = objectColor/255;
         }
     }
 }

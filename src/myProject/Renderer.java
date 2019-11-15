@@ -39,7 +39,7 @@ public class Renderer extends AbstractRenderer{
     OGLBuffers buffers;
 
     // All shits for shaders
-    int shaderProgram, locProjection, locView, locModel, paramFunc, surfaceType, locObjectColor, locMoveInTime, locLightPos, locViewPos, locLightBulb, locLightType, locAscii, locCutOff, locSpotDir, locMoon;
+    int shaderProgram, locProjection, locView, locModel, paramFunc, surfaceType, locObjectColor, locMoveInTime, locLightPos, locViewPos, locLightBulb, locLightType, locAscii, locSpotlight, locSpotDir, locMoon, locCoordsInTexture;
 
     // All shits for light shaders
     int shaderProgramLight, locMoveInTimeLight, locViewLight, locModelLight, locProjectionLight, paramFuncLight;
@@ -59,6 +59,8 @@ public class Renderer extends AbstractRenderer{
     Boolean rotate = true;
     Boolean strip = false;
     int ascii = 0;
+    int spotlight = 1;
+    int coordsInTexture = 0;
 
     int stripOrNot = GL_TRIANGLES;
 
@@ -95,8 +97,6 @@ public class Renderer extends AbstractRenderer{
         glClearColor(0f, 0f, 0f, 1.0f);
         glEnable(GL_DEPTH_TEST);
 
-        createBuffers();
-
         shaderProgram = ShaderUtils.loadProgram("/myProject/myShader.vert",
                 "/myProject/myShader.frag",
                 null,null,null,null);
@@ -110,8 +110,7 @@ public class Renderer extends AbstractRenderer{
         texture_m = new OGLTexture2D("textures/moon.jpg");
         texture_m_height = new OGLTexture2D("textures/moonNormal.png");
 
-        // internal OpenGL ID of a shader uniform (constant during one draw call
-        // - constant value for all processed vertices or pixels) variable
+        createBuffers(texture.getWidth(), texture.getHeight());
 
         view = new Camera()
                 .withPosition(new Vec3D(10, 10, 5))
@@ -123,7 +122,7 @@ public class Renderer extends AbstractRenderer{
         viewLight = new Camera()
                 .withPosition(new Vec3D(8,8,4))
                 .withAzimuth(5 / 4f * Math.PI)
-                .withZenith(-1 / 5f * Math.PI)
+                .withZenith(-1 / 8f * Math.PI)
                 .withRadius(6);
         viewLight = viewLight.left(5);
         lightPosition = new Mat4Transl(viewLight.getPosition().getX(), viewLight.getPosition().getY(), viewLight.getPosition().getZ());
@@ -209,13 +208,17 @@ public class Renderer extends AbstractRenderer{
         String surfaceTypeText = "K for toggle surface type";
         String stripText = "O for toggle IB strip";
         String lightTypeText = "L for toggle light mode";
+        String coordsInTextureText = "J for toggle coords in texture rendering";
         String asciiText = "M for toggle ascii rendering";
+        String spotlightText = "N for toggle spotlight rendering";
         textRenderer.addStr2D(3, 20, controlText);
         textRenderer.addStr2D(3, 40, functionChangeText);
         textRenderer.addStr2D(3, 60, String.format("%s (%b), %s (%b), %s (%b), %s (%b)", fillText, fill, rotateText, rotate, projectionText, persp, stripText, strip));
         textRenderer.addStr2D(3, 80, String.format("%s (%s %s)", surfaceTypeText, surfaceToggle, surfaceToggleDescriptor));
         textRenderer.addStr2D(3, 100, String.format("%s (%s %s)", lightTypeText, lightType, lightTypeDescriptor));
-        textRenderer.addStr2D(3, 120, String.format("%s (%s %s)", asciiText, ascii, ascii!=0.0f));
+        textRenderer.addStr2D(3, 120, String.format("%s (%s %s)", coordsInTextureText, coordsInTexture, coordsInTexture!=0.0f));
+        textRenderer.addStr2D(3, 140, String.format("%s (%s %s)", asciiText, ascii, ascii!=0.0f));
+        textRenderer.addStr2D(3, 160, String.format("%s (%s %s)", spotlightText, spotlight, spotlight!=0.0f));
         textRenderer.addStr2D(width-90, height-3, " (c) PGRF UHK");
         textRenderer.draw();
     }
@@ -258,7 +261,7 @@ public class Renderer extends AbstractRenderer{
 
         //----------------------------------------------------Setup second object in scene
         glUniform1f(paramFuncLight, 0);
-        glUniformMatrix4fv(locModelLight, false, new Mat4RotZ(rotateValue).mul(new Mat4Scale(0.3).mul(new Mat4Transl(3,3, 0).mul(new Mat4RotZ(rotateValue)))).floatArray());
+        glUniformMatrix4fv(locModelLight, false, new Mat4RotZ(rotateValue).mul(new Mat4Scale(0.3).mul(new Mat4Transl(3,3, 0).mul(new Mat4RotZ(-rotateValue)))).floatArray());
         buffers.draw(stripOrNot, shaderProgramLight); //draw him
 
         //----------------------------------------------------Setup base plane object
@@ -283,7 +286,8 @@ public class Renderer extends AbstractRenderer{
         renderTarget.getDepthTexture().bind(shaderProgram, "shadowMap", 4); //bind light buffer like a viewer texture
 
         glUniform1i(locAscii,  ascii);
-        glUniform1f(locCutOff, (float) viewLight.getRadius());
+        glUniform1i(locSpotlight, spotlight);
+        glUniform1i(locCoordsInTexture, coordsInTexture);
         glUniform3f(locSpotDir, (float) viewLight.getViewVector().getX(), (float) viewLight.getViewVector().getY(), (float) viewLight.getViewVector().getZ());
 
         //setup scene filling
@@ -325,7 +329,7 @@ public class Renderer extends AbstractRenderer{
         //----------------------------------------------------Setup second object in scene
         glUniform1i(locMoon, 1);
         glUniform1f(paramFunc, 0);
-        glUniformMatrix4fv(locModel, false, new Mat4RotZ(rotateValue).mul(new Mat4Scale(0.3).mul(new Mat4Transl(3,3, 0).mul(new Mat4RotZ(rotateValue)))).floatArray());
+        glUniformMatrix4fv(locModel, false, new Mat4RotZ(rotateValue).mul(new Mat4Scale(0.3).mul(new Mat4Transl(3,3, 0).mul(new Mat4RotZ(-rotateValue)))).floatArray());
         buffers.draw(stripOrNot, shaderProgram); //draw him
 
         //----------------------------------------------------Setup base plane object
@@ -339,14 +343,14 @@ public class Renderer extends AbstractRenderer{
         glUniform1i(locLightBulb, 1);
         glUniform1f(paramFunc, 0); //his shape
         glUniform1f(surfaceType, 10); //his color
-        glUniform3f(locObjectColor, 255, 255, 0); //if color is <1 or 4< use this color from cpu
+        glUniform3f(locObjectColor, 200, 200, 0); //if color is <1 or 4< use this color from cpu
         glUniformMatrix4fv(locModel, false, new Mat4Scale(0.1).mul(lightPosition).floatArray()); //his position and scale
         buffers.draw(stripOrNot, shaderProgram); //draw him
         glUniform1i(locLightBulb, 0);
     }
 
-    void createBuffers() {
-        GridFactory factory = new GridFactory(30,30);
+    void createBuffers(int textureWidth, int textureHeight) {
+        GridFactory factory = new GridFactory(10,10, textureWidth, textureHeight);
         float[] vertexBufferData = factory.getVertexBuffer();
 
         int[] indexBufferData;
@@ -358,7 +362,8 @@ public class Renderer extends AbstractRenderer{
 
         // vertex binding description, concise version
         OGLBuffers.Attrib[] attributes = {
-                new OGLBuffers.Attrib("inPosition", 2), // 2 floats
+                new OGLBuffers.Attrib("inPosition", 2),
+                new OGLBuffers.Attrib("inTexturePosition", 2)
         };
 
         buffers = new OGLBuffers(vertexBufferData, attributes, indexBufferData);
@@ -375,9 +380,10 @@ public class Renderer extends AbstractRenderer{
         locLightBulb = glGetUniformLocation(shader,"lightBulb");
         locLightType = glGetUniformLocation(shader, "lightType");
         locAscii = glGetUniformLocation(shader, "ascii");
-        locCutOff = glGetUniformLocation(shader, "cutOff");
         locSpotDir = glGetUniformLocation(shader, "spotDir");
         locMoon = glGetUniformLocation(shader, "moon");
+        locSpotlight = glGetUniformLocation(shader, "spotlight");
+        locCoordsInTexture = glGetUniformLocation(shader, "coordsInTexture");
 
         locViewLight = glGetUniformLocation(shader, "viewLight");
         locLightPos = glGetUniformLocation(shader, "lightPos");
@@ -463,11 +469,11 @@ public class Renderer extends AbstractRenderer{
                         if(strip){
                             strip = false;
                             stripOrNot = GL_TRIANGLES;
-                            createBuffers();
+                            createBuffers(texture.getWidth(), texture.getHeight());
                         }else{
                             strip = true;
                             stripOrNot = GL_TRIANGLE_STRIP;
-                            createBuffers();
+                            createBuffers(texture.getWidth(), texture.getHeight());
                         }
                         break;
                     case GLFW_KEY_K:
@@ -502,6 +508,20 @@ public class Renderer extends AbstractRenderer{
                             ascii = 1;
                         }else{
                             ascii = 0;
+                        }
+                        break;
+                    case GLFW_KEY_N:
+                        if(spotlight == 0){
+                            spotlight = 1;
+                        }else{
+                            spotlight = 0;
+                        }
+                        break;
+                    case GLFW_KEY_J:
+                        if(coordsInTexture == 0){
+                            coordsInTexture = 1;
+                        }else{
+                            coordsInTexture = 0;
                         }
                         break;
                 }

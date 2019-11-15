@@ -10,19 +10,21 @@ public class GridFactory {
 
     }
 
-    public GridFactory(int xSize, int ySize){
-        createVB(xSize, ySize);
+    public GridFactory(int xSize, int ySize, int width, int height){
+        createVB(xSize, ySize, width, height);
         createIBList(xSize, ySize);
         createIBStrip(xSize, ySize);
     }
 
-    private void createVB(int xSize, int ySize) {
-        vertexBuffer = new float[2 * ySize * xSize];
+    private void createVB(int xSize, int ySize, int width, int height) {
+        vertexBuffer = new float[2 * ySize * xSize * 2];
         int index = 0;
         for (int y = 0; y < ySize; y++) {
             for (int x = 0; x < xSize; x++) {
                 vertexBuffer[index++] = (float) x / (xSize - 1);
                 vertexBuffer[index++] = (float) y / (ySize - 1);
+                vertexBuffer[index++] = (float) (width / (xSize - 1))/width;
+                vertexBuffer[index++] = (float) (height / (ySize - 1))/height;
             }
         }
     }
