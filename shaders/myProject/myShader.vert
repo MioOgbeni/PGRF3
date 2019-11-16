@@ -183,6 +183,7 @@ float ShadowCalculation(vec4 coordLight)
 }
 
 void main() {
+	vertTexturePosition = inTexturePosition;
 	vertPosition = vec3(inPosition, 1.0);
 	vec3 position = paramPos(inPosition);
 	vec3 normal = transpose(inverse(mat3(view * model))) * paramNormal(inPosition);
@@ -208,17 +209,10 @@ void main() {
             // barva textura
 			if(!moon){
 				if(coordsInTexture){
-
-					float v=acos(vertPosition.z/1.0)/M_PI;
-					float u=atan(vertPosition.x/vertPosition.y)/2/M_PI;
-					if (sign(vertPosition.y)<=0) u+=0.5;
-
-					vec2 coordsTexture = vec2(u, v);
-
-					normal = texture2D(mainHighTex, coordsTexture.xy).xyz;
+					normal = texture2D(mainHighTex, inTexturePosition.xy).xyz;
 					normal *= 2;
 					normal -= 1;
-					color =  texture(mainTex, coordsTexture.xy).rgb;
+					color =  texture(mainTex, inTexturePosition.xy).rgb;
 				}else{
 					normal = texture2D(mainHighTex, vertPosition.xy).xyz;
 					normal *= 2;
@@ -227,18 +221,10 @@ void main() {
 				}
 			}else{
 				if(coordsInTexture){
-
-					float v=acos(vertPosition.z/1.0)/M_PI;
-					float u=atan(vertPosition.x/vertPosition.y)/2/M_PI;
-					if (sign(vertPosition.y)<=0) u+=0.5;
-
-					vec2 coordsTexture = vec2(u, v);
-
-
-					normal = texture2D(moonHighTex, coordsTexture.xy).xyz;
+					normal = texture2D(moonHighTex, inTexturePosition.xy).xyz;
 					normal *= 2;
 					normal -= 1;
-					color =  texture(moonTex, coordsTexture.xy).rgb;
+					color =  texture(moonTex, inTexturePosition.xy).rgb;
 				}else{
 					normal = texture2D(moonHighTex, vertPosition.xy).xyz;
 					normal *= 2;

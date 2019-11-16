@@ -23,8 +23,8 @@ public class GridFactory {
             for (int x = 0; x < xSize; x++) {
                 vertexBuffer[index++] = (float) x / (xSize - 1);
                 vertexBuffer[index++] = (float) y / (ySize - 1);
-                vertexBuffer[index++] = (float) (width / (xSize - 1))/width;
-                vertexBuffer[index++] = (float) (height / (ySize - 1))/height;
+                vertexBuffer[index++] = (float) x / (xSize - 1);
+                vertexBuffer[index++] = (float) y / (ySize - 1);
             }
         }
     }
