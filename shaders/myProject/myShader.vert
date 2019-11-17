@@ -75,7 +75,7 @@ vec3 funcSomething(vec2 inPos) {
 }
 
 vec3 funcSphere(vec2 inPos) {
-	// zemekoule
+	// globe
 	float s = M_PI * 0.5 - M_PI * inPos.y;
 	float t = 2 * M_PI * inPos.x;
 	float r = 2;
@@ -88,6 +88,7 @@ vec3 funcSphere(vec2 inPos) {
 
 vec3 funcDeformedBall(vec2 inPos)
 {
+	// deformed ball
 	float s = M_PI * 0.5 - M_PI * inPos.y;
 	float t = 2 * M_PI * inPos.x;
 	float r = 2 + moveInTime *sin(6*s)*sin(5*t);
@@ -110,6 +111,7 @@ vec3 funcSombrero(vec2 inPos) {
 }
 
 vec3 funcGlass(vec2 inPos){
+	// glass
 	float s= M_PI * 0.5 - M_PI * inPos.x * 2;
 	float t= M_PI * 0.5 - M_PI * inPos.y * 2;
 
@@ -143,7 +145,7 @@ vec3 paramPos(vec2 inPosition){
 	return position;
 }
 
-/* obecny vypocet normaly */
+// normal calculation
 vec3 paramNormal(vec2 inPos){
 	vec3 tx = paramPos(inPos + vec2(delta,0)) - paramPos(inPos - vec2(delta,0));
 	vec3 ty = paramPos(inPos + vec2(0,delta)) - paramPos(inPos - vec2(0,delta));
@@ -206,7 +208,7 @@ void main() {
         vec3 color;
 
         if (surfaceType == 1){
-            // barva textura
+            // texture
 			if(!moon){
 				if(coordsInTexture){
 					normal = texture2D(mainHighTex, inTexturePosition.xy).xyz;
@@ -233,17 +235,17 @@ void main() {
 				}
 			}
         } else if (surfaceType == 2){
-            // barva normála
+            // normal color
             float cosAlpha = dot(normalize(vertNormal), normalize(lightDir));
             color =  vec3(cosAlpha);
         } else if (surfaceType == 3){
-            // barva xyz
+            // xyz color
             color = vertColor;
         } else if (surfaceType == 4){
-            // barva hloubka
+            // depth color
             color = (projection * view * model * vec4(position, 1.0)).zzz;
         }else{
-            //  barva solid z cpu
+            //  solid color from cpu
             color = objectColor/255;
         }
 

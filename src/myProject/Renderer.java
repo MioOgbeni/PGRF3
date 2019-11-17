@@ -21,7 +21,6 @@ import org.lwjgl.glfw.GLFWWindowSizeCallback;
 
 import transforms.*;
 
-
 /**
  *
  * @author PGRF FIM UHK
@@ -110,7 +109,7 @@ public class Renderer extends AbstractRenderer{
         texture_m = new OGLTexture2D("textures/moon.jpg");
         texture_m_height = new OGLTexture2D("textures/moonNormal.png");
 
-        createBuffers(texture.getWidth(), texture.getHeight());
+        createBuffers();
 
         view = new Camera()
                 .withPosition(new Vec3D(10, 10, 5))
@@ -306,7 +305,6 @@ public class Renderer extends AbstractRenderer{
 
         glUniform1f(locLightType, lightType);
 
-        //vec3 test = new Mat4RotX(rotateValue).mul(viewLight.getPosition())
         glUniform3f(locLightPos, (float) viewLight.getPosition().getX(), (float) viewLight.getPosition().getY(), (float) viewLight.getPosition().getZ());
         glUniform3f(locViewPos, (float) view.getPosition().getX(), (float) view.getPosition().getY(), (float) view.getPosition().getZ());
 
@@ -349,8 +347,8 @@ public class Renderer extends AbstractRenderer{
         glUniform1i(locLightBulb, 0);
     }
 
-    void createBuffers(int textureWidth, int textureHeight) {
-        GridFactory factory = new GridFactory(1000,1000, textureWidth, textureHeight);
+    void createBuffers() {
+        GridFactory factory = new GridFactory(1000,1000);
         float[] vertexBufferData = factory.getVertexBuffer();
 
         int[] indexBufferData;
@@ -469,11 +467,11 @@ public class Renderer extends AbstractRenderer{
                         if(strip){
                             strip = false;
                             stripOrNot = GL_TRIANGLES;
-                            createBuffers(texture.getWidth(), texture.getHeight());
+                            createBuffers();
                         }else{
                             strip = true;
                             stripOrNot = GL_TRIANGLE_STRIP;
-                            createBuffers(texture.getWidth(), texture.getHeight());
+                            createBuffers();
                         }
                         break;
                     case GLFW_KEY_K:

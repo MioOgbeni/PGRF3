@@ -99,7 +99,7 @@ void main() {
         vec3 color;
 
         if (surfaceType == 1){
-            // barva textura
+            // texture
             if(!moon){
                 if(coordsInTexture){
                     normal = texture2D(mainHighTex, vertTexturePosition.xy).xyz;
@@ -126,17 +126,17 @@ void main() {
                 }
             }
         } else if (surfaceType == 2){
-            // barva normála
+            // normal color
             float cosAlpha = dot(normalize(normal), normalize(lightDir));
             color =  vec3(cosAlpha);
         } else if (surfaceType == 3){
-            // barva xyz
+            // xyz color
             color = vertColor;
         } else if (surfaceType == 4){
-            // barva hloubka
+            // depth color
             color = gl_FragCoord.zzz;
         }else{
-            //  barva solid z cpu
+            //  solid color from cpu
             color = objectColor/255;
         }
 
@@ -181,11 +181,13 @@ void main() {
         specular *= attenuation;
         vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
 
+        // ascii rendering
         int n;
         vec2 p;
         if(ascii){
             float gray = 0.3 * lighting.r + 0.59 * lighting.g + 0.11 * lighting.b;
 
+            //bitmap generated in http://www.thrill-project.com/archiv/coding/bitmap/
             n =  4096;                // .
             if (gray > 0.2) n = 65600;    // :
             if (gray > 0.3) n = 332772;   // *

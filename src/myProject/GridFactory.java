@@ -10,13 +10,13 @@ public class GridFactory {
 
     }
 
-    public GridFactory(int xSize, int ySize, int width, int height){
-        createVB(xSize, ySize, width, height);
+    public GridFactory(int xSize, int ySize){
+        createVB(xSize, ySize);
         createIBList(xSize, ySize);
         createIBStrip(xSize, ySize);
     }
 
-    private void createVB(int xSize, int ySize, int width, int height) {
+    private void createVB(int xSize, int ySize) {
         vertexBuffer = new float[2 * ySize * xSize * 2];
         int index = 0;
         for (int y = 0; y < ySize; y++) {
