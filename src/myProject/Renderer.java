@@ -38,7 +38,7 @@ public class Renderer extends AbstractRenderer{
     OGLBuffers buffers;
 
     // All shits for shaders
-    int shaderProgram, locProjection, locView, locModel, paramFunc, surfaceType, locObjectColor, locMoveInTime, locLightPos, locViewPos, locLightBulb, locLightType, locAscii, locSpotlight, locSpotDir, locMoon, locCoordsInTexture;
+    int shaderProgram, locProjection, locView, locModel, paramFunc, surfaceType, locObjectColor, locMoveInTime, locLightPos, locViewPos, locLightBulb, locLightType, locAscii, locSpotlight, locSpotDir, locMoon, locCoordsInTexture, locGrayScale;
 
     // All shits for light shaders
     int shaderProgramLight, locMoveInTimeLight, locViewLight, locModelLight, locProjectionLight, paramFuncLight;
@@ -60,6 +60,7 @@ public class Renderer extends AbstractRenderer{
     int ascii = 0;
     int spotlight = 1;
     int coordsInTexture = 0;
+    int grayScale = 0;
 
     int stripOrNot = GL_TRIANGLES;
 
@@ -210,6 +211,7 @@ public class Renderer extends AbstractRenderer{
         String coordsInTextureText = "J for toggle coords in texture rendering (only with surface type '1')";
         String asciiText = "M for toggle ascii rendering";
         String spotlightText = "N for toggle spotlight rendering";
+        String grayScaleText = "G for toggle grayscale ascii";
         textRenderer.addStr2D(3, 20, controlText);
         textRenderer.addStr2D(3, 40, functionChangeText);
         textRenderer.addStr2D(3, 60, String.format("%s (%b), %s (%b), %s (%b), %s (%b)", fillText, fill, rotateText, rotate, projectionText, persp, stripText, strip));
@@ -217,7 +219,8 @@ public class Renderer extends AbstractRenderer{
         textRenderer.addStr2D(3, 100, String.format("%s (%s %s)", lightTypeText, lightType, lightTypeDescriptor));
         textRenderer.addStr2D(3, 120, String.format("%s (%s %s)", coordsInTextureText, coordsInTexture, coordsInTexture!=0.0f));
         textRenderer.addStr2D(3, 140, String.format("%s (%s %s)", asciiText, ascii, ascii!=0.0f));
-        textRenderer.addStr2D(3, 160, String.format("%s (%s %s)", spotlightText, spotlight, spotlight!=0.0f));
+        textRenderer.addStr2D(3, 160, String.format("%s (%s %s)", grayScaleText, grayScale, grayScale!=0.0f));
+        textRenderer.addStr2D(3, 180, String.format("%s (%s %s)", spotlightText, spotlight, spotlight!=0.0f));
         textRenderer.addStr2D(width-90, height-3, " (c) PGRF UHK");
         textRenderer.draw();
     }
@@ -284,6 +287,7 @@ public class Renderer extends AbstractRenderer{
 
         renderTarget.getDepthTexture().bind(shaderProgram, "shadowMap", 4); //bind light buffer like a viewer texture
 
+        glUniform1i(locGrayScale, grayScale);
         glUniform1i(locAscii,  ascii);
         glUniform1i(locSpotlight, spotlight);
         glUniform1i(locCoordsInTexture, coordsInTexture);
@@ -382,6 +386,7 @@ public class Renderer extends AbstractRenderer{
         locMoon = glGetUniformLocation(shader, "moon");
         locSpotlight = glGetUniformLocation(shader, "spotlight");
         locCoordsInTexture = glGetUniformLocation(shader, "coordsInTexture");
+        locGrayScale = glGetUniformLocation(shader, "grayScale");
 
         locViewLight = glGetUniformLocation(shader, "viewLight");
         locLightPos = glGetUniformLocation(shader, "lightPos");
@@ -520,6 +525,13 @@ public class Renderer extends AbstractRenderer{
                             coordsInTexture = 1;
                         }else{
                             coordsInTexture = 0;
+                        }
+                        break;
+                    case GLFW_KEY_G:
+                        if(grayScale == 0){
+                            grayScale = 1;
+                        }else{
+                            grayScale = 0;
                         }
                         break;
                 }

@@ -25,6 +25,7 @@ uniform bool moon;
 uniform bool spotlight;
 uniform bool coordsInTexture;
 uniform bool lightBulb;
+uniform bool grayScale;
 
 uniform vec3 spotDir;
 
@@ -176,6 +177,7 @@ void main() {
         // ascii rendering
         int n;
         vec2 p;
+
         if(ascii){
             float gray = 0.3 * lighting.r + 0.59 * lighting.g + 0.11 * lighting.b;
 
@@ -191,10 +193,11 @@ void main() {
 
             p = mod(gl_FragCoord.xy/4.0, 2.0) - vec2(1.0);
 
-            lighting = lighting * character(n, p);
-
-            // gray scale
-            // lighting = gray * vec3(character(n, p));
+            if(grayScale){
+                lighting = gray * vec3(character(n, p));
+            }else{
+                lighting = lighting * character(n, p);
+            }
         }
 
         outColor = vec4(lighting, 1.0);
@@ -203,7 +206,13 @@ void main() {
         if(lightBulb){
 
             if(ascii){
-                outColor = vec4(objectColor/255 * character(n, p), 1.0);
+                float gray = 0.3 * (objectColor/255).r + 0.59 * (objectColor/255).g + 0.11 * (objectColor/255).b;
+
+                if(grayScale){
+                    outColor = vec4(gray * vec3(character(n, p)), 1.0);
+                }else{
+                    outColor = vec4(objectColor/255 * character(n, p), 1.0);
+                }
             }else{
                 outColor = vec4(objectColor/255, 1.0);
             }
