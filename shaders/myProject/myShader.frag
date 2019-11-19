@@ -1,8 +1,6 @@
 #version 150
 #define M_PI 3.14159265359
 
-in vec2 vertTexturePosition;
-
 in vec3 vertColor; // input from the previous pipeline stage
 in vec3 vertNormal;
 in vec3 vertPosition;
@@ -102,10 +100,7 @@ void main() {
             // texture
             if(!moon){
                 if(coordsInTexture){
-                    normal = texture2D(mainHighTex, vertTexturePosition.xy).xyz;
-                    normal *= 2;
-                    normal -= 1;
-                    color =  texture(mainTex, vertTexturePosition.xy).rgb;
+                    color = vec3(vertPosition.xy, 1.0);
                 }else{
                     normal = texture2D(mainHighTex, vertPosition.xy).xyz;
                     normal *= 2;
@@ -114,10 +109,7 @@ void main() {
                 }
             }else{
                 if(coordsInTexture){
-                    normal = texture2D(moonHighTex, vertTexturePosition.xy).xyz;
-                    normal *= 2;
-                    normal -= 1;
-                    color =  texture(moonTex, vertTexturePosition.xy).rgb;
+                    color =  vec3(vertPosition.xy, 1.0);
                 }else{
                     normal = texture2D(moonHighTex, vertPosition.xy).xyz;
                     normal *= 2;
@@ -200,6 +192,9 @@ void main() {
             p = mod(gl_FragCoord.xy/4.0, 2.0) - vec2(1.0);
 
             lighting = lighting * character(n, p);
+
+            // gray scale
+            // lighting = gray * vec3(character(n, p));
         }
 
         outColor = vec4(lighting, 1.0);

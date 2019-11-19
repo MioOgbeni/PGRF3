@@ -2,9 +2,6 @@
 #define M_PI 3.14159265359
 
 in vec2 inPosition; // input position from the vertex buffer
-in vec2 inTexturePosition; // input texture coord from the vertex buffer
-
-out vec2 vertTexturePosition;
 
 out vec3 vertPosition;
 out vec3 vertColor; // output from this shader to the next pipeline stage
@@ -185,7 +182,6 @@ float ShadowCalculation(vec4 coordLight)
 }
 
 void main() {
-	vertTexturePosition = inTexturePosition;
 	vertPosition = vec3(inPosition, 1.0);
 	vec3 position = paramPos(inPosition);
 	vec3 normal = transpose(inverse(mat3(view * model))) * paramNormal(inPosition);
@@ -211,10 +207,7 @@ void main() {
             // texture
 			if(!moon){
 				if(coordsInTexture){
-					normal = texture2D(mainHighTex, inTexturePosition.xy).xyz;
-					normal *= 2;
-					normal -= 1;
-					color =  texture(mainTex, inTexturePosition.xy).rgb;
+					color = vec3(vertPosition.xy, 1.0);
 				}else{
 					normal = texture2D(mainHighTex, vertPosition.xy).xyz;
 					normal *= 2;
@@ -223,10 +216,7 @@ void main() {
 				}
 			}else{
 				if(coordsInTexture){
-					normal = texture2D(moonHighTex, inTexturePosition.xy).xyz;
-					normal *= 2;
-					normal -= 1;
-					color =  texture(moonTex, inTexturePosition.xy).rgb;
+					color = vec3(vertPosition.xy, 1.0);
 				}else{
 					normal = texture2D(moonHighTex, vertPosition.xy).xyz;
 					normal *= 2;

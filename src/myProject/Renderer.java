@@ -78,7 +78,7 @@ public class Renderer extends AbstractRenderer{
 
 
     Color objectColor = new Color(0,255,0);
-    Color objectColor2 = new Color(0,0,255);
+    Color objectColor2 = new Color(0,170,255);
 
     OGLTexture2D texture;
     OGLTexture2D texture_height;
@@ -207,7 +207,7 @@ public class Renderer extends AbstractRenderer{
         String surfaceTypeText = "K for toggle surface type";
         String stripText = "O for toggle IB strip";
         String lightTypeText = "L for toggle light mode";
-        String coordsInTextureText = "J for toggle coords in texture rendering";
+        String coordsInTextureText = "J for toggle coords in texture rendering (only with surface type '1')";
         String asciiText = "M for toggle ascii rendering";
         String spotlightText = "N for toggle spotlight rendering";
         textRenderer.addStr2D(3, 20, controlText);
